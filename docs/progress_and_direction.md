@@ -59,6 +59,56 @@ Log external papers checked for relevance here, with a concrete verdict -
 not just "interesting," but *what specifically transfers to this project
 and why*, so a future skim doesn't have to re-derive the connection.
 
+### Neuralink, "Pretraining on 50,000 Hours of Unlabeled Brain Data" (Oct 2026)
+
+Company engineering report, not peer-reviewed: self-supervised pretraining for
+intracortical cursor decoding on 50,000 hours of unlabeled recordings across
+clinical-trial participants, spatially masked channel prediction as the
+objective, Mamba/state-space backbone.
+[neuralink.com/updates/pretraining-on-50000-hours](https://neuralink.com/updates/pretraining-on-50000-hours/)
+
+**What transfers, concretely:**
+
+1. **Independent corroboration of this project's central negative result.**
+   All of their live results come from *participant-specific* encoders
+   pretrained on that participant's own data, and they state plainly that
+   pooled multi-participant models *"perform no better than their
+   single-participant counterparts"* online. That is the same null found here
+   across six methods (SPD shrinkage, eigenvoice, Module A, and cross-subject
+   meta-training episodes) — reproduced at ~5 orders of magnitude more data,
+   in a different modality, by a different group. Strong external evidence
+   that the finding is about the *structure of the problem*, not about this
+   project's data being small.
+2. **"Intention lives in a stable subspace" — a scientific basis for aligning
+   dynamics rather than statistics.** They lean on Karpowicz et al.
+   (Nat Commun 2025, latent-dynamics alignment) and Gallego et al.
+   (Nat Neurosci 2020, population dynamics stable across days): the
+   day-specific component of activity is not dominant in the middle of a
+   well-trained encoder, and the *dynamics* stay stable across sessions even
+   when raw statistics drift. This project aligns covariances and has never
+   aligned a fitted dynamical system — even though
+   `src/adaptation/state_space_flow.py` already fits one, and was only ever
+   used as a feature extractor. See TODO.md A28.
+3. **Data efficiency as the metric that matters.** Their data-scaling figure
+   ("30 seconds of labeled embeddings ≈ 3.5 minutes of raw spikes", and
+   generalising a month out) moves the headline from peak accuracy to
+   *calibration burden*. This project has no such curve: `phase2b` sweeps the
+   *eval-side reference* sample size, never the *training* sample size. See
+   TODO.md A29 — and note the project may be sitting on an unusually strong
+   version of this result, since Riemannian alignment uses zero labels from
+   the eval session.
+4. **Longevity, not just accuracy.** 10 min/day → 10 min/week recalibration,
+   >3 weeks without recalibration for some decoders, usable control 20 months
+   after calibration. IV-2a's two sessions cannot measure any of this; it
+   strengthens the case for a ≥3-session dataset (TODO.md A20/A31).
+
+**What does NOT transfer:** the absolute numbers, and any implication that the
+same recipe works on scalp EEG. Intracortical arrays give a much higher-SNR,
+higher-channel-count signal than 22 volume-conducted EEG channels, and their
+50,000 hours are longitudinal *per participant* — a data shape no public MI
+dataset has. Treat this as design guidance and external validation, not as a
+benchmark, and note also that a company report has no independent replication.
+
 ### MetaWearS (Amirshahi, Toosi et al., Communications Medicine 2026)
 
 Prototypical-Networks-based few-shot meta-learning for wearable health

@@ -108,9 +108,61 @@ paired tests, but never ran a per-subject diagnostic. That is A1 below.
 | A25 | RIDE multi-component decomposition (the one latency-alignment variant left untried) | `[within-subject]` | M | +0–1pp | **3** |
 | A26 | Prototypical open items: subject-5 outlier, `episodes_per_step` tuning, significance vs Phase 2 | `[pop-data, safe]` | M | Closes out the best non-Riemannian result | **3** |
 | A27 | Measurement hygiene: multiple-comparison control, power statement, pre-registration | — | S | Not accuracy — validity | **1** |
+| A28 | Align the fitted *dynamics*, not the statistics (systems-neuroscience answer, primitives already in the repo) | `[within-subject]` `[label-free]` | M | +0–3pp and a genuinely different axis from RA | **1** |
+| A29 | Make **calibration burden** the headline metric — accuracy vs number of labelled trials, not at one fixed budget | `[within-subject]` | S–M | Likely a *better story* than +4.7pp; reframes the whole project | **1** |
+| A30 | Per-subject self-supervised pretraining on the target's own unlabeled data (masked channel/time objective) | `[label-free]` | L | The honest test of "wrong idea" vs "wrong data" | **2** |
+| A31 | Longevity: accuracy decay over sessions, and "sessions until below X" (blocked on A20) | `[within-subject]` | L | New capability, not a mean shift | **3** |
+| A32 | State-space / Mamba-style sequence encoder | `[pop-data, safe]` | L | Unknown; architecture bets are expensive on 9 subjects | **3** |
 
 Cross-disciplinary transplants are in [Part B](#part-b--cross-disciplinary-transplants-bonus),
 scored separately.
+
+---
+
+## 3. External evidence that reshaped this list (Neuralink, Oct 2026)
+
+Neuralink's report *Pretraining on 50,000 Hours of Unlabeled Brain Data* is not an EEG
+paper, and none of its numbers transfer. It is included because it **independently
+corroborates this project's central finding at ~5 orders of magnitude more data**, and
+because three of its design choices become new experiments here (A28–A30).
+[neuralink.com/updates/pretraining-on-50000-hours](https://neuralink.com/updates/pretraining-on-50000-hours/)
+
+**What they did:** self-supervised pretraining (spatially masked auto-Poisson regression —
+mask half the channels, predict the other half) over 50,000 hours of unlabeled
+intracortical recordings from clinical-trial participants, on a Mamba / state-space
+backbone. One participant alone contributed 9,000 hours / 22.4 billion spikes.
+
+**The corroboration that matters most.** All of their live results come from
+*participant-specific* encoders pretrained on that participant's **own** recordings. Pooling
+across participants was tried, and their verdict is explicit: *"decoders built from
+multi-participant models perform no better than their single-participant counterparts."*
+That is precisely the null this project hit six times (SPD shrinkage, eigenvoice, Module A,
+and cross-subject meta-training episodes) — now reproduced by a different group, in a
+different modality, with four orders of magnitude more data and a foundation-model
+architecture. **This is the strongest external evidence yet that the finding is about the
+structure of the problem rather than about this project's data being small**, and it is
+worth citing whenever the negative result is presented.
+
+**The three transfers:**
+
+| From their report | Becomes |
+|---|---|
+| *"Intention lives in a stable subspace"* — day-specific variation is not dominant mid-encoder; the **dynamics** stay stable across sessions while raw statistics drift (they cite Karpowicz et al., Nat Commun 2025; Gallego et al., Nat Neurosci 2020) | **A28** — align the fitted dynamical system, not the covariance. This project's `state_space_flow.py` already fits one and has never been used for alignment |
+| Data-efficiency as the headline: *"30 seconds of labeled embeddings ≈ 3.5 minutes of raw spikes"*; calibration burden cut from ~10 min/day to ~10 min/week | **A29** — report accuracy against number of labelled trials. The project has no such curve, and may be sitting on an unusually strong version of it |
+| Decoder **longevity** (some decoders stable >3 weeks; one usable 20 months after calibration) | **A31** (+A20) — accuracy decay over sessions, which IV-2a's two sessions cannot measure |
+
+**What does not transfer, and why it matters for reading §11 of the survey:** intracortical
+arrays give a far higher-SNR, higher-channel-count signal than 22 volume-conducted EEG
+channels, and their 50,000 hours are *longitudinal per participant* — a data shape no public
+MI dataset has. So this does not contradict the survey's finding that EEG foundation models
+lose on motor imagery; it explains it. The revised reading: **self-supervised pretraining
+does not lose on MI because it is self-supervised, but because of public-EEG scale, public-EEG
+SNR, and cross-subject pooling.** The per-subject and alignment-oriented uses of
+self-supervision are exactly the parts that survive that re-reading (A28, A30).
+
+**Caveat on the source:** a company engineering blog, not peer-reviewed, with no independent
+replication and a modality-specific metric (bits per second in closed-loop control) that is
+not comparable to offline 4-class accuracy. Cite it for *direction*, never for numbers.
 
 ---
 
@@ -649,6 +701,132 @@ comparisons noise. That instinct is right — but it needs to become a rule, not
 
 ---
 
+### A28. Align the fitted dynamics, not the statistics `[within-subject]` `[label-free]` **Tier 1** *(new — see §3)*
+
+**The oversight.** Every alignment method in this repo matches *second-order statistics*:
+`RiemannianAlignment` whitens the session's mean covariance, shrinkage interpolates
+covariances, tangent-space methods rotate point clouds of covariance vectors. Systems
+neuroscience tackled the same multi-day instability problem for intracortical BCIs and
+arrived somewhere else: the raw activity drifts across days, but the **latent dynamical
+system** generating it is stable (Gallego et al., *Nat Neurosci* 2020), so decoders can be
+stabilised by aligning *latent dynamics* rather than distributions (Karpowicz et al.,
+*Nat Commun* 2025). Neuralink's pretraining leans on the same premise. Neither reference
+appears anywhere in `docs/state_of_the_art.md`.
+
+**What already exists here, unused for this purpose.** `src/adaptation/state_space_flow.py`
+fits a skew-symmetric linear dynamical system to trial trajectories
+(`fit_skew_symmetric_flow_debiased`, `fit_pooled_flow_debiased`) and extracts rotation
+frequency and plane. It was tested **only as a feature extractor** — `phase10` reached 25.8%,
+a clean null — and never as an *alignment target*. `riemannian_icp.procrustes_rotation` is a
+validated, closed-form similarity-transform solver. The two have never been pointed at each
+other.
+
+**Why it could beat 66.9%.** It is within-subject, label-free, and it corrects something
+whitening provably cannot. Whitening fixes the *marginal* covariance of the trial
+distribution; if the drift is a rotation or expansion of the *state space* — which is
+exactly the structure the project's synthetic drift experiments inject — then matching the
+marginal leaves the dynamics mismatched. This composes with Riemannian alignment rather than
+competing with it.
+
+**First experiment.** Fit a linear dynamical system per session in a shared low-dimensional
+subspace (PCA on pooled calibration trials, fixed across sessions to make `A` comparable);
+estimate the similarity transform `T` mapping session B's `A` onto session A's; apply `T` to
+the eval trials; run the standard CSP+LDA. **Gate it on synthetic data where the planted
+drift is known by construction** — the project already has the generators
+(`stage0_state_space_flow_eeg_validation.py` plants 8 known channel-mixing drifts).
+
+**Cost:** M. **Kill criterion:** if, on synthetic data with a *known* planted drift, the
+per-session `A` estimates are not measurably closer after alignment, the mechanism is wrong
+for this signal and should be closed out like CPD — do not carry it to real data.
+
+**Related caveat to respect:** `phase10`'s null showed real IV-2a trials do not exhibit the
+rotational structure the synthetic generator guarantees. So the synthetic gate passing is
+*necessary but not sufficient*; treat this exactly like Module A (passed its gate, failed on
+real data) and budget for that possibility.
+
+---
+
+### A29. Make calibration burden the headline metric `[within-subject]` **Tier 1** *(new — see §3)*
+
+**The oversight.** Every result in this repo is reported at one fixed calibration budget:
+all 288 labelled calibration trials. The question *"how few labelled trials are needed to
+reach accuracy X?"* is never asked. `phase2b_spd_shrinkage.py` sweeps sample size — but only
+of the **eval-side unlabeled reference**, never of the **training/labelled** data.
+
+**Why this may matter more than any accuracy gain.** It is the metric the field and industry
+actually optimise (Neuralink's headline result is a *calibration-burden* reduction — 10
+min/day → 10 min/week — not a peak-accuracy number). And this project may be sitting on an
+unusually strong version of it: Riemannian alignment uses **zero labels** from the eval
+session, so its advantage over non-adapted CSP should *grow* as the calibration budget
+shrinks. If that holds, the project's real claim is not "66.9% vs 62.2%" but something like
+*"reaches 62% with half the calibration"* — a more useful and more defensible result, and
+one that reframes the whole negative-results narrative as a story about label efficiency.
+
+**First experiment.** Sweep labelled calibration trials n ∈ {32, 64, 96, 144, 192, 288} ×
+{no alignment, RA, RA+RPA (A2), tangent-LDA}, and report two things: accuracy vs n, and
+**trials-to-threshold** (n needed to reach 60% / 62% / 65%). All data is cached locally, so
+this is refits only.
+
+**Cost:** S–M. **Deliverable:** one figure and one table — the most presentable result this
+project could produce, and it requires no new mechanism to succeed. Do this early even if
+every method-level item in this file stalls.
+
+---
+
+### A30. Per-subject self-supervised pretraining on the target's own unlabeled data `[label-free]` **Tier 2** *(new — see §3)*
+
+**Where it comes from.** Neuralink's live results use *participant-specific* encoders
+pretrained on that participant's own recordings, with masked channel prediction as the
+objective — self-supervision used **within** a subject, not to transfer **across** subjects.
+The survey's §11 dismissal of self-supervised pretraining for MI is about the cross-subject,
+public-corpus version. The within-subject version has never been tried here.
+
+**The transplant.** Pretrain a small encoder on the target's own data — 288 calibration + 288
+eval trials, optionally plus the continuous recordings already cached under `data/cleaned/` —
+with a masked-channel / masked-time reconstruction objective, then use its embeddings
+downstream (classifier head, or prototypes as in Phase 6).
+
+**Honest headwind — state it before running.** IV-2a gives a subject ~3–4 orders of magnitude
+less data than the Neuralink report, and the project's own evidence says high-capacity
+learned corrections fail when reference data is small (Methodology lesson 3). Expect a null.
+The value is that it makes the question *falsifiable*: **is the foundation-model idea wrong
+for MI, or is the public data wrong for foundation models?**
+
+**Route through the gates:** synthetic generator (arbitrarily many trials for a *known*
+subject) → one PhysioNet subject's long recording → IV-2a. **Cost:** L.
+
+---
+
+### A31. Longevity: accuracy decay over sessions `[within-subject]` **Tier 3** *(new — see §3)*
+
+**The oversight.** The project has no longitudinal metric at all, because IV-2a has two
+sessions. Neuralink's most striking results are longevity results: some decoders stable for
+>3 weeks, one still usable **20 months** after calibration, recalibration dropping from
+10 min/day to 10 min/week.
+
+**Why it matters.** "Sessions until accuracy drops below X" is the real-world question, and
+it is orthogonal to mean accuracy: a method that is 2pp worse on average but decays half as
+fast is the better product. Nothing in the current evaluation can express that.
+
+**Blocked on A20** (Won et al. 5-session dataset — cited in the survey's §1, never
+downloaded). **Cost:** L, after A20.
+
+---
+
+### A32. State-space / Mamba-style sequence encoder `[pop-data, safe]` **Tier 3** *(new — see §3)*
+
+Neuralink's first architectural bet is that neural activity is best modelled as a dynamical
+system, motivating a Mamba/SSM backbone with constant-latency inference. The analogous EEG
+choice has never been tested here — the project's only learned encoder is a small MLP over
+tangent vectors (`prototypical_network.py`).
+
+**Honest assessment:** low priority. Architecture changes are expensive to evaluate honestly
+on 9 subjects, and everything this project has learned says the *alignment* step, not encoder
+capacity, is where the leverage sits. Listed for completeness, and because A28 is the
+cheap part of the same dynamical-systems insight. **Cost:** L.
+
+---
+
 ## Part B — Cross-disciplinary transplants (bonus)
 
 Each card: **field → borrowed mechanism → transplant → fit against the central finding →
@@ -658,6 +836,22 @@ cheapest first test → cost**. Ordering within tiers is by expected value.
 already surveyed there.
 
 ### Tier B1 — Strong fits: cheap, label-free or within-subject, unclaimed
+
+**B27. Latent-dynamics alignment — systems neuroscience / latent variable models `[within-subject]` `[label-free]` `NEW`**
+*(Added after the Oct 2026 Neuralink update; numbered out of sequence to avoid renumbering
+the cards below. Same experiment as A28 — listed here for its cross-disciplinary provenance.)*
+Systems neuroscience faced this project's exact problem in a harder setting — intracortical
+recordings that drift across days — and solved it by showing that the **latent dynamics** are
+stable across days even when spike statistics are not (Gallego et al., *Nat Neurosci* 2020),
+then aligning those dynamics instead of the data (Karpowicz et al., *Nat Commun* 2025; the
+premise Neuralink's pretraining rests on). This project matches *marginals* (covariances);
+this matches the *transition operator* — an orthogonal correction that composes with
+Riemannian alignment instead of competing with it. **Fit:** within-subject, label-free, and
+all the primitives already exist (`state_space_flow.fit_skew_symmetric_flow_debiased` fits
+the system; `riemannian_icp.procrustes_rotation` solves for the transform between two of
+them). **Test:** see A28. **Cost:** M. **Why it is the strongest transplant in this list:** the
+home domain's drift structure (slow, structured, within-subject) matches this project's drift
+structure far more closely than any of the other fields surveyed.
 
 **B1. Adaptive noise cancellation — radar / sonar / audio (LMS, RLS) `[label-free]` `NEW`**
 The classic problem in radar and audio: a target signal is corrupted by an additive
@@ -915,7 +1109,7 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 
 ---
 
-## Part C — Recommended execution order (the next five experiments)
+## Part C — Recommended execution order (the next six experiments)
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
@@ -924,25 +1118,34 @@ Chosen for information value per unit cost, and because each one gates or feeds 
    bottom-three failure analysis. *Outcome that changes everything:* if subjects 2/5/6 are
    signal-limited, stop pushing global methods and pivot to A19 (predict and route) plus
    A6 (per-subject configuration) — the honest answer, and the project's own thesis.
-2. **A2 + A8 + A12 (S–M).** The three cheap within-subject wins on top of the method that
-   already works: RPA stretch+rotation with pseudo-labels, within-subject shrinkage priors,
-   and the alignment-estimator ablations (Euclidean alignment, per-class, robust mean).
-   All use existing, unit-validated primitives. *This is where I would expect the first
-   genuine improvement over 66.9%.*
+2. **A29 + A2 + A8 + A12 (S–M).** The cheap within-subject work, plus the deliverable.
+   A29 (accuracy vs number of labelled trials, and trials-to-threshold) costs nothing but
+   refits, produces the project's most presentable figure, and may be the strongest result
+   available without inventing anything. Alongside it: RPA stretch+rotation with
+   pseudo-labels (A2), within-subject shrinkage priors (A8), and the alignment-estimator
+   ablations (A12). All use existing, unit-validated primitives. *This is where I would
+   expect the first genuine improvement over 66.9%.*
 3. **B2/B15 (S–M).** RUV-style negative-control drift removal, with differential photometry
    as its baseline. Targets the cleaned-pipeline/ComBat failure mechanically and is
    label-free.
-4. **A3 + B19 + B10 (M–L).** The leakage-safe *sequential* evaluation harness, which is a
+4. **A28 + B27 (M).** Latent-dynamics alignment, gated on synthetic data with a *known*
+   planted drift. The strongest new lead in this file: the only approach that corrects a
+   quantity Riemannian alignment provably cannot reach, backed by a sibling modality that
+   solved the same problem, using code that already exists.
+5. **A3 + B19 + B10 (M–L).** The leakage-safe *sequential* evaluation harness, which is a
    prerequisite for online adaptation, Kalman-filtered running estimates, entropy
    minimisation, and self-training (A11). Once built, four hypotheses become cheap to test.
-5. **A4 + A5 (M).** Prototype alignment on unlabeled eval trials and OT/Wasserstein
+6. **A4 + A5 (M).** Prototype alignment on unlabeled eval trials and OT/Wasserstein
    alignment. Both are literature-backed with same-dataset numbers (79.3% and +2.45pp), and
    both are label-free and within-subject — the two best-evidenced ways to actually beat
    66.9% rather than nibble at it.
 
-Then, in parallel and decoupled from the accuracy race: **A20** (a third session per
-subject — a structural capability the project currently lacks) and **B5** (per-subject
-frequency warping — the highest expected-value-per-line item in Part B).
+Then, in parallel and decoupled from the accuracy race: **A20 + A31** (a dataset with ≥3
+sessions per subject, and the longevity metric it unlocks — a structural capability the
+project currently lacks), **B5** (per-subject frequency warping — the highest
+expected-value-per-line item in Part B), and **A30** (per-subject self-supervised
+pretraining — the honest test of whether the foundation-model idea or the public data is at
+fault).
 
 ---
 
@@ -986,5 +1189,8 @@ To count as a real improvement, a candidate must clear all of these:
    the real-data claim.
 6. Reproduction of the current baseline (62.2% / 66.9%) inside the same run, so a
    configuration drift cannot masquerade as a gain.
+7. The calibration-burden curve for the method (A29), not just its accuracy at n=288. A
+   method that wins at the full 288 calibration trials but loses at 96 has not improved the
+   product, whatever the mean says.
 
-A +1pp result that clears all six is worth more than a +4pp result that clears none.
+A +1pp result that clears all seven is worth more than a +4pp result that clears none.

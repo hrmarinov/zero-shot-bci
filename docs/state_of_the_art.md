@@ -954,3 +954,41 @@ opposite direction (Riemannian geometry, which is what §10.1's shrinkage
 work already builds on) is where the actual motor-imagery leverage is,
 at least as of the papers checked here. Worth re-checking periodically since
 this is a fast-moving space and today's gap could close.
+
+### Update (Oct 2026) — Neuralink's 50,000-hour pretraining: read this section as *public EEG corpora*, not as "self-supervision doesn't work"
+
+Neuralink report pretraining self-supervised encoders on **50,000 hours of
+unlabeled intracortical recordings** (one participant alone: 9,000 hours,
+22.4 billion spikes), using spatially masked channel prediction over a
+Mamba/state-space backbone — and report the opposite outcome to everything
+above: a new BCI record (11.32 bits/s), calibration burden down from ~10
+min/day to ~10 min/week, and a decoder still usable **20 months** after its
+calibration.
+[neuralink.com/updates/pretraining-on-50000-hours](https://neuralink.com/updates/pretraining-on-50000-hours/)
+
+This does not overturn the MI findings — it *explains* them — and the
+difference is load-bearing:
+
+- **Modality and SNR.** Intracortical spikes from a hand-knob array are a
+  fundamentally easier signal than 22 channels of volume-conducted scalp EEG,
+  where the sensorimotor rhythm is attenuated by skull and scalp and often
+  weaker than alpha and artifact.
+- **Scale.** 50,000 hours vs. LaBraM's ~2,500 hours across ~20 datasets — and
+  crucially it is **longitudinal per participant**, a shape no public MI
+  dataset has (IV-2a offers two ~30-minute sessions).
+- **Per-subject, not pooled.** Every live result comes from
+  *participant-specific* encoders pretrained on that participant's own
+  recordings. Pooling across participants was tried, and their own verdict is
+  that *"decoders built from multi-participant models perform no better than
+  their single-participant counterparts"* — the same null this project found
+  six times over, now reproduced at ~5 orders of magnitude more data and in a
+  different modality.
+
+**Revised reading:** self-supervised pretraining does not lose on motor imagery
+*because it is self-supervised*. It loses on **public EEG corpora, at public
+EEG scale, under cross-subject pooling**. The directions that survive that
+re-reading — pretrain self-supervised on the *target's own* unlabeled data, and
+use self-supervision for *alignment* rather than for cross-subject transfer —
+are logged as A30 and A28 in [TODO.md](../TODO.md). The report's other
+transferable shift, from peak accuracy to **calibration burden** as the metric,
+is A29.
