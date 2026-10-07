@@ -213,6 +213,21 @@ computed; (ii) alignment's benefit is uncorrelated with baseline ability
 (Pearson r = −0.16, p = 0.68, n = 9), so it is a near-uniform correction, not a rescue
 mechanism for the subjects who need one most.
 
+**VERDICT (R1-B, `docs/characterization_iv2a.md`, audited — see `docs/audit_log.md`).**
+Subjects 2/5/6 are **predominantly signal-limited, moderate confidence**, and the
+discriminating measurement is *whether a cue-period mu ERD exists at all*, **not** whether it
+is lateralised — which corrects the framing this item originally used. Weak median ERD
++0.035 (i.e. mu power *increases*) vs strong −0.235, AUC 1.000, p=0.0357, reproducing in the
+*other* session (+0.139 vs −0.232) and corroborated by Phase 1 within-session accuracy
+(0.488/0.354/0.509 vs 0.772–0.863, no transfer involved). Laterality does *not* separate
+(AUC 0.53). ERD tracks accuracy at Spearman −0.767 (p=0.016) against Phase 2 aligned. Two
+consequences: **A6 (per-subject configuration) is unlikely to rescue these three** — though
+the decisive per-subject band/window/component grid has still not been run, and that is now
+the single cheapest experiment that could overturn this — and **A19 (predict and route)**
+becomes the honest path for them. Also retired by this work: the project's cross-dataset
+drift result does not replicate on IV-2a (within-subject drift is 1.6–5.9× *smaller* than
+between-subject distance for all 9 subjects).
+
 ---
 
 ### A2. RPA's stretch and rotation steps `[within-subject]` **Tier 1**

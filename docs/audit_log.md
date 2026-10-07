@@ -332,6 +332,65 @@ without parsing the raw GDF/MAT; IV-2b's "canonical split" mixes two screening r
 `BNCI2014_001` METADATA describes a different dataset (Berlin set 1: 4 subjects, 2 classes)
 and must not be used; the PhysioNet cache holds only the imagined runs.
 
+### R1-B — IV-2a per-subject signal characterization: **ACCEPTED**
+
+Deliverables: `experiments/char_01_iv2a_signal.py`, `docs/characterization_iv2a.md`,
+`results/char_iv2a_signal_characteristics.csv` (396 rows × 43 cols),
+`results/char_iv2a_subject_summary.csv` (9 × 107). Agent reported exit 0, 90.5 s, peak
+0.68 GB, and byte-identical CSVs across two of its own runs.
+
+**My independent re-run: exit 0, 83.5 s, and both CSVs byte-identical by SHA256**
+(`2F7C42D0…` / `3477927F…` before and after). Reproducibility confirmed by a third,
+independent execution.
+
+**Every claim I could test, tested against its own CSVs (not its prose):**
+
+| Claim | My computation from the CSVs | Verdict |
+|---|---|---|
+| Cue-period mu ERD distinguishes WEAK {2,5,6} from STRONG {1,3,7,8,9}, and is the *discriminating* fact | `erd_mu_hands_mean_calib`: weak median **+0.0349** vs strong **−0.2348**, AUC **1.000**, exact Mann-Whitney **p=0.0357**; per-subject values match its table exactly (s2 +0.130, s6 +0.035, s5 −0.066; strong −0.166…−0.348) | **confirmed** |
+| It replicates in the *other* session (independent corroboration) | `erd_mu_hands_mean_eval`: weak +0.139 vs strong −0.232, AUC 1.000, p=0.0357 | **confirmed** |
+| Its correction to my framing: **laterality does not separate** | `li_mu_calib` AUC **0.533**, p=1.000; `li_pair_consistency_calib` AUC 0.433, p=1.000 | **confirmed** |
+| Within-subject drift is smaller than between-subject distance on IV-2a (so the earlier cross-dataset result does not replicate) | ratios 0.17–0.64, max **0.639** — drift is 1.6–5.9× smaller for all 9 subjects | **confirmed** |
+| Artefact proxies are near-degenerate | `mean_frac_trials_gt_100uv_calib` = 0.0 for 7/9 subjects, max 0.00079 | **confirmed** (matches the caveat I raised pre-delivery) |
+| ERD tracks accuracy across subjects | Spearman(ERD, Phase 1 within-session) = **−0.733** (p=0.0246); (ERD, Phase 2 aligned) = **−0.767** (p=0.0159) — matches its reported −0.733/−0.767 | **confirmed** |
+| Structural sanity | 396 rows, 288 trials/session everywhere, 0 NaN cells in either CSV | **confirmed** |
+
+**The scientific answer, which was the point of the round:** subjects 2, 5 and 6 are
+**predominantly signal-limited** (moderate confidence), and the discriminating measurement is
+*whether a cue-period mu ERD exists at all* — not whether it is lateralised. Subjects 2 and 6
+*increase* mu power during the cue window (ERS rather than ERD) and subject 5's rhythm peaks
+at 7.32 Hz, below the pipeline's 8 Hz corner. Combined with R1-I1 (their deficit is already
+present within-session), this closes the "signal-limited vs configuration-limited" question
+in favour of signal-limited for those three, with one caveat the agent correctly refuses to
+paper over: the decisive per-subject band/window/component grid was not run, and subject 5's
+own peak band makes its structure test *worse*, so mis-banding is probably not binding but is
+not formally excluded.
+
+**Caveats the agent stated and I am keeping visible:** n=3 vs 5 puts the exact
+Mann-Whitney floor at 0.0357; the "seven complete separations" are one finding measured seven
+ways across 37 uncorrected features; and the ratio-of-means and log-space permutation
+statistics disagree in places (subject 6: 0.362 vs 0.022). Two real estimator bugs were caught
+by the agent before any output was trusted — a biased mean-of-per-trial-ratios ERD (fake
+global ERS: `E[A/B] > E[A]/E[B]` under positive `Var(B)`, so ratio-of-mean-powers is the
+correct estimator) and a 1/f fit that must be confined to 1–40 Hz. Note also that
+`li_beta_calib` reached AUC 0.933 (p=0.071) in my recheck: not significant at the floor and
+tested among 37 features, so it is not evidence, but it is the closest the laterality family
+came and is recorded rather than dropped.
+
+### Process correction (addressed to me, not the agents)
+
+R1-B flagged that `src/datasets.py` and `src/preprocessing.py` changed at 16:29–16:30 **while
+its job was running**. That was me, applying the OpenBMI docstring and notch-frequency fixes
+from R1-A's audit. The agent handled it exactly right — it re-ran and confirmed byte-identical
+CSVs and unchanged loader dependencies — but the underlying risk is real: editing shared
+library files while another agent has a job in flight makes "what revision produced this
+artifact?" ambiguous.
+
+**Rule adopted:** batch edits to `src/*` (anything imported by a running script) so they land
+when no agent job is in flight, and if that is not possible, say so in the commit and require
+the affected agent to re-run and confirm byte-identical output. My fix happened to be
+behaviour-preserving for IV-2a, but that was luck of the design, not of the process.
+
 ### R1-A / R1-B / R1-C audit verdicts
 
 *(pending — filled in when each agent reports; each entry will list the re-run command,
