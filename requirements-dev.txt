@@ -1,0 +1,4 @@
+# Development-only dependencies (not needed to reproduce any result).
+
+-r requirements.txt
+pytest==9.1.1

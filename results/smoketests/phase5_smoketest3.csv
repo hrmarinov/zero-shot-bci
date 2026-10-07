@@ -1,0 +1,2 @@
+subject,csp_only,wavelet_only,rocket_only,combined_lda,combined,n_correct,n_total
+1,0.7847222222222222,0.3194444444444444,0.5625,0.5451388888888888,0.6770833333333334,195,288

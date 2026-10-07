@@ -1,0 +1,38 @@
+# Virtual environments
+.venv/
+venv/
+
+# Downloaded datasets (MOABB/MNE caches, cleaned derivatives)
+data/
+mne_data/
+*.fif
+
+# Python build/runtime artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Run logs (raw stdout of long experiments; not committed)
+*.log
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# DSH session metadata
+.claude/
+
+# Accidentally nested copy of C:\Users\...\mne_data created by an early
+# MOABB/MNE path-sanitization bug (see the note in src/config.py). Local
+# artifact only - the real cache lives in data/.
+C-/

@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software or build on these results, please cite it as below."
+title: "zero-shot-bci: cross-session EEG-BCI personalization research code"
+abstract: >-
+  Research code, results, and a negative-results log for closing the
+  calibration-to-live-session accuracy gap in motor-imagery brain-computer
+  interfaces. Evaluated on BCI Competition IV-2a/2b with OpenBMI and PhysioNet
+  as external population pools. The best cross-session result is CSP+LDA with
+  per-session Riemannian alignment (66.9%, 4-class, 9 subjects, chance 25%);
+  every method that directly compares two different subjects' covariance
+  structure is documented as null or harmful.
+authors:
+  - family-names: Marinov
+    given-names: Hristo
+version: 0.1.0
+date-released: 2026-10-07
+license: MIT
+repository-code: "https://github.com/hrmarinov/zero-shot-bci"
+type: software
+keywords:
+  - EEG
+  - brain-computer interface
+  - motor imagery
+  - cross-session adaptation
+  - transfer learning
+  - Riemannian geometry
+  - BCI illiteracy

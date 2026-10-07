@@ -1,0 +1,29 @@
+# Runtime dependencies - the exact set of third-party packages imported by the
+# committed code (src/ + experiments/), pinned to the versions this work was
+# produced and validated with (Python 3.12.3).
+#
+#   py -3.12 -m venv .venv
+#   .venv\Scripts\python -m pip install -r requirements.txt
+#
+# torch: plain PyPI resolves the CPU build. These runs used the CUDA 12.4 build
+# (torch 2.6.0+cu124); for GPU, install torch from the PyTorch index first, then
+# the rest of this file:
+#   pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+#
+# Deliberately absent, though present in the original working environment:
+#   braindecode - never imported by any code here, and braindecode 1.7.0 fails to
+#                import against torch 2.6 because it needs torchaudio matching
+#                the torch version. Do not add it without checking that first.
+#   matplotlib  - never imported by any code here; moabb pulls it in via mne.
+
+mne==1.12.1
+moabb==1.5.0
+neuroCombat==0.2.12
+numpy==2.4.6
+pandas==2.3.3
+pyriemann==0.12
+requests==2.34.2
+scikit-learn==1.7.2
+scipy==1.18.0
+sktime==1.1.0
+torch==2.6.0
