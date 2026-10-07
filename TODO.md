@@ -198,6 +198,21 @@ between subject-level SNR and subject-level accuracy.
 simple SNR proxy, then subjects 2/5/6 are hardware/signal-limited and only *prediction and
 routing* (A19) can help them — which would redirect the entire roadmap.
 
+**Partial answer already available (verified from the committed CSVs, no new compute — see
+[`docs/audit_log.md`](docs/audit_log.md) entry R1-I1).** The weak group's deficit is present
+*without any cross-session drift at all*: subjects 2/5/6 score **45.0%** under
+**within-session** cross-validation on the calibration session (CSP refit per fold), against
+**80.1%** for the strong group — a 35pp gap that requires no session change to appear,
+versus 34pp cross-session. So their failure **cannot** be attributed to miscalibration or
+drift, which is where this project has aimed nearly all of its effort. This does *not* yet
+separate "irreducible" from "recoverable by a different fixed configuration" — that is what
+the R1-B lateralised-ERD and peak-frequency measurements are for. Two consequences:
+(i) a "beat the baseline" claim should also be reported against the drift-limited subset,
+whose aligned mean is **77.7%** for subjects {1, 3, 4, 7, 8, 9} — a number nobody had
+computed; (ii) alignment's benefit is uncorrelated with baseline ability
+(Pearson r = −0.16, p = 0.68, n = 9), so it is a near-uniform correction, not a rescue
+mechanism for the subjects who need one most.
+
 ---
 
 ### A2. RPA's stretch and rotation steps `[within-subject]` **Tier 1**
