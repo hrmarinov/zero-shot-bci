@@ -259,6 +259,10 @@ Untried-but-identified directions, open questions, and the artifact-cleaned data
 mixed first validation are all logged in
 [`docs/progress_and_direction.md`](docs/progress_and_direction.md).
 
+A prioritised list of everything still untested — including cross-disciplinary method
+transplants, the per-subject failure analysis the mean has been hiding, and what "beating
+66.9%" would have to mean — is in [`TODO.md`](TODO.md).
+
 ## Citation
 
 See [`CITATION.cff`](CITATION.cff).
