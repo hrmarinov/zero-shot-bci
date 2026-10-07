@@ -29,6 +29,13 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Scratch files. Agents/experiments working in this repo have repeatedly created
+# ad-hoc `tmp_*.py` probes in the root; they are not deliverables. This is a safety
+# net so a `git add -A` can never sweep them into a commit - they should still be
+# deleted when the work they supported is done.
+tmp_*.py
+scratch_*.py
+
 # DSH session metadata
 .claude/
 

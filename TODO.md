@@ -786,6 +786,19 @@ this is refits only.
 project could produce, and it requires no new mechanism to succeed. Do this early even if
 every method-level item in this file stalls.
 
+**DONE — result ([`docs/calibration_burden.md`](docs/calibration_burden.md),
+`results/ablation_calibration_burden.csv`).** The hypothesis above is **refuted**: alignment
+helps at every budget but its gain is *smallest* at the smallest budget (+2.78pp at 32
+trials) and *largest* at the full one (+4.71pp at 288) — it is not primarily a label-scarcity
+effect, and a diagnostic condition shows the alignment *reference* is not the thing that
+degrades at small n. What survives is better: **96 labelled calibration trials with alignment
+match what unadapted CSP+LDA achieves with all 288** (62.18% vs 62.23%, −0.05pp, p=0.43) — a
+**3× reduction in calibration burden for equal accuracy**, while costing 4.75pp against the
+full-budget aligned method (p=0.0039). Per subject this parity is not uniform: subject 7 gains
++14.5pp while six of nine subjects are slightly worse, so quote the breakdown with the
+average. Also established: the extra 192 unlabeled calibration trials for the reference are
+worth +0.05–0.22pp (≈ half a trial).
+
 ---
 
 ### A30. Per-subject self-supervised pretraining on the target's own unlabeled data `[label-free]` **Tier 2** *(new — see §3)*
