@@ -234,13 +234,26 @@ def load_iv2a_subject_shared_channels(subject: int) -> SubjectSessions:
 
 
 def load_openbmi_reference_subject(subject: int) -> np.ndarray:
-    """Load one OpenBMI (Lee2019_MI) subject's trials (MOABB's MotorImagery
-    paradigm returns one recording session per subject for this dataset,
-    ~100 trials - plenty for a well-estimated reference mean, well above the
-    low-data regime this experiment probes), restricted to the 21 channels
-    shared with IV-2a in matching order. Unsupervised use only (population-
-    prior reference) - labels are not returned since the reference pool
-    never needs them.
+    """Load one OpenBMI (Lee2019_MI) subject's trials, restricted to the 21
+    channels shared with IV-2a in matching order. Unsupervised use only
+    (population-prior reference) - labels are not returned since the reference
+    pool never needs them.
+
+    **Only the second recording day is ever returned** (~100 trials), and that
+    is a MOABB bug, not a property of the paradigm (verified by reading
+    `moabb/datasets/Lee2019.py` and `moabb/datasets/base.py` in 1.5.0, and by
+    the dataset audit in `results/char_dataset_audit.csv`):
+    `Lee2019._get_sessions` names sessions `str(session - 1)`, so the default
+    `sessions=(1, 2)` produces the keys `{"0", "1"}`, while `BaseDataset.get_data`
+    filters with `k in {str(s) for s in selected_sessions}` = `{"1", "2"}`.
+    Only `"1"` survives - day 1 is unreachable through the public API. Asking for
+    `sessions=[1]` or `sessions=[2]` returns an EMPTY dict, because the filter set
+    and the produced-key set are computed from the same list with different
+    offsets (so `sessions=[2]` is *not* a memory-saving shortcut - it returns
+    nothing). One consequence worth knowing for any population-prior use: this
+    pool is single-day per subject, so it cannot support a cross-session claim.
+    Memory: loading one subject this way peaks at ~4.1 GB RSS, because both
+    session files are read before the filter discards one.
 
     The host serving these files (a large ~600MB .mat per subject/session)
     drops the connection mid-download intermittently - retries with a short

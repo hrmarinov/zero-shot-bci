@@ -26,6 +26,18 @@ follow the rules below**; `src/perf.py` implements them.
 
 ## The rules
 
+### 0. Heap expectations for the big datasets (measured)
+
+| What | Peak RSS | Note |
+|---|---|---|
+| IV-2a, one subject, both sessions epoched | 0.91 GB | `576 × 22 × 501 float64` ≈ 25.4 MB per session |
+| IV-2b, one subject | 0.80 GB | — |
+| **OpenBMI (Lee2019), one subject** | **4.14 GB** | Both session files (~600 MB each) are read before a filter discards one — see the docstring on `load_openbmi_reference_subject`. This one dataset is the reason the per-process budget matters. |
+| PhysioNet, one subject | 0.81 GB | — |
+
+Measured by `experiments/char_00_dataset_audit.py`; the full table with per-dataset
+methodology is in [`docs/datasets.md`](datasets.md).
+
 ### 1. Pin threads, always — first thing in the file
 
 ```python
@@ -46,8 +58,9 @@ part-P-core CPU, and it starves any concurrent process.
 
 - **Process one subject at a time.** Never `[loader(s) for s in subjects]` for the big
   datasets (OpenBMI is ~600 MB/subject raw; 20 of them will not fit).
-- IV-2a per subject is small (`288 × 22 × 500 float64` ≈ 25 MB per session) — all 9 subjects
-  at once is fine (~450 MB).
+- IV-2a per subject is small (`288 × 22 × 501 float64` ≈ 25.4 MB per session — the epoch is
+  501 samples, not 500, because MOABB's `0.5–2.5 s` window is inclusive of both endpoints) —
+  all 9 subjects at once is fine (~450 MB).
 - Use `float32` for any array expected to exceed ~500 MB, and for **all** torch tensors.
 - `del` large intermediates and `gc.collect()` between subjects in a loop.
 - If a script needs to hold a big intermediate across subjects, write it to

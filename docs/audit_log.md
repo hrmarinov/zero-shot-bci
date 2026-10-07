@@ -255,6 +255,83 @@ near-degenerate across subjects, in which case they carry no information and sho
 reported as such rather than as a null result. Confirm variance across all 9 subjects on
 delivery.
 
+### R1-A — dataset methodology audit: **ACCEPTED WITH CAVEAT**, one recommendation **REJECTED**
+
+**Protocol status: the independent-evidence step is DONE; the script re-run is DEFERRED.**
+Every substantive claim was verified by me against MOABB source and by loading the data
+directly (table below), so the *content* is independently confirmed. The re-run that would
+prove the artifact byte-reproducible (`char_00_dataset_audit.py` → `char_dataset_audit.csv`)
+peaks at 4.14 GB, and at the time of audit the commit headroom was 5.48 GB with another
+agent's long-running job (897 s CPU) in flight. Under the machine rules in
+`docs/compute_environment.md` that is too tight to be safe, so it is scheduled for when the
+machine is quiet rather than risk thrashing an in-flight run. This is a deliberate,
+recorded deferral, not an omission.
+
+Deliverables: `experiments/char_00_dataset_audit.py`, `results/char_dataset_audit.csv`
+(9 rows × 37 cols), `docs/datasets.md`. Agent reported exit 0, 47 s, peak RSS 4.14 GB on
+OpenBMI.
+
+**Spot-checks I ran myself (independent of the agent's script):**
+
+| Audit claim | My verification | Result |
+|---|---|---|
+| IV-2a raw: 250 Hz, 50 Hz mains, 26 channels = 22 EEG + 3 EOG + 1 stim, `interval=[2,6]`, 6 runs in `0train` | read `BNCI2014_001` raw directly | **all match** |
+| IV-2a epochs `576 × 22 × 501`, exactly 72 trials/class/session, data in µV | loaded via the paradigm: shape `(576, 22, 501)`, 144/class over both sessions, `max|X| = 42.3` | **all match** |
+| PhysioNet: 160 Hz, and `line_freq` is *not* in the EDF file (60 Hz comes only from MOABB metadata) | `mne.io.read_raw_edf(S001R04.edf)`: `sfreq=160.0`, `line_freq=None` | **match** |
+
+**The headline finding — CONFIRMED from MOABB 1.5.0 source.** Only OpenBMI's *second*
+recording day is reachable through the public API, and it is a loader bug, not paradigm
+behaviour:
+
+- `moabb/datasets/Lee2019.py` validates `sessions ⊆ [1, 2]` (lines 96–98) and passes the
+  **same list** to `selected_sessions` (line 110);
+- `_get_sessions` names its keys `str(session - 1)` (line 215), so the default `(1, 2)`
+  produces `{"0", "1"}`;
+- `BaseDataset.get_data` keeps only `k in {str(s) for s in effective_sessions}` =
+  `{"1", "2"}` (base.py lines 887–891).
+
+So `"1"` survives and `"0"` (day 1) is unreachable. Any OpenBMI cross-session claim would be
+single-day. This does **not** invalidate the project's use of OpenBMI in `phase2d`, which is
+a *population prior* (one session per subject is sufficient and legitimate for that purpose),
+but the limitation had to be written down — and now is, in
+`src/datasets.py:load_openbmi_reference_subject`.
+
+**REJECTED recommendation.** The agent proposed constructing `Lee2019_MI(sessions=[2])` "to
+halve" the 4.14 GB peak. That is wrong, from the same three code paths: with `sessions=[2]`,
+`_get_sessions` produces the key `"1"` while the filter set is `{"2"}`, so the result is an
+**empty dict**. There is no `sessions=` value that returns day-2 data while avoiding the
+download/read of day-1's file — the loader reads every requested session before the filter
+discards one. Reducing that memory requires bypassing MOABB (e.g. patching
+`_selected_sessions` to `["1"]` *after* constructing with `sessions=[2]`, which works but
+depends on a private attribute), so it was **not** implemented; instead the ~4.1 GB peak is
+now documented as a measured fact in `docs/compute_environment.md`. Recording this because a
+plausible-sounding optimisation that silently returns no data is exactly the class of error
+this log exists to catch.
+
+**Action taken on the confirmed finding:** `load_openbmi_reference_subject`'s docstring said
+"MOABB's MotorImagery paradigm returns one recording session per subject" — right outcome,
+wrong cause. It now states the verified cause, that it is always day 2, that `sessions=[1]`
+and `sessions=[2]` both return empty, and the memory cost.
+
+**Action taken on the line-frequency finding.** The audit's `line_freq` column shows the
+mains frequency genuinely differs by dataset (50 Hz for Graz IV-2a/2b; 60 Hz per MOABB
+metadata for OpenBMI in Korea and PhysioNet in the US). `src/preprocessing.py` hardcoded
+`NOTCH_FREQS = [50.0, 100.0]`. That is correct for IV-2a — the only dataset it cleans — so
+there was no active bug, but it was a live trap for any future cross-dataset use. It now
+derives the notch from the recording's own `line_freq` with a fallback, and
+`tests/test_preprocessing.py` asserts that for a 50 Hz recording it returns *exactly* the old
+constant (so `data/cleaned/` and the committed `cleaned_riemannian_check.csv` remain valid)
+and that a 60 Hz recording does not get a 50 Hz notch. Caveat carried: the 60 Hz value is
+MOABB *metadata*, not something the files themselves encode.
+
+**Findings accepted as correct but not actionable, recorded for the record:** the artifact
+trials flagged in IV-2a/IV-2b exist only as free text in `raw.info['description']` (counts,
+not indices), so they are included in both training and testing and cannot be excluded
+without parsing the raw GDF/MAT; IV-2b's "canonical split" mixes two screening recordings
+(120 trials) with one feedback recording (160) on the calibration side; MOABB's
+`BNCI2014_001` METADATA describes a different dataset (Berlin set 1: 4 subjects, 2 classes)
+and must not be used; the PhysioNet cache holds only the imagined runs.
+
 ### R1-A / R1-B / R1-C audit verdicts
 
 *(pending — filled in when each agent reports; each entry will list the re-run command,

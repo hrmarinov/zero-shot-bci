@@ -12,8 +12,10 @@ Pipeline, applied to each session's *continuous* raw recording (all runs
 concatenated first, then cleaned as one unit - ICA needs enough data to
 estimate stable components, and ICA/filtering must happen before epoching
 since epoch boundaries would otherwise cut into filter edge effects):
-notch filter (European mains, this dataset was recorded in Graz, Austria -
-50Hz and its first harmonic 100Hz) -> a general-purpose wide bandpass
+notch filter (line frequency taken from *the recording itself* - 50Hz and
+its 100Hz harmonic for these Graz, Austria recordings, but 60Hz for e.g.
+OpenBMI (Korea) or PhysioNet (US); see `_notch_freqs_for`) -> a
+general-purpose wide bandpass
 (1-40Hz, matching wavelet_calibration.py's existing "lightly band-limited"
 convention, not any one analysis's own narrower band - CSP's 8-30Hz or any
 other downstream filtering is applied separately, on top of this cache,
@@ -29,6 +31,7 @@ file(s) under data/cleaned/ to force a re-clean (e.g. after changing
 NOTCH_FREQS, BANDPASS, or the ICA parameters below).
 """
 
+import math
 from pathlib import Path
 
 import mne
@@ -36,7 +39,35 @@ import mne
 from src.config import DATA_DIR
 
 CLEANED_DIR = DATA_DIR / "cleaned"
-NOTCH_FREQS = [50.0, 100.0]  # European mains (Graz, Austria) + first harmonic
+NOTCH_FREQS = [50.0, 100.0]  # fallback: European mains (Graz, Austria) + first harmonic
+
+
+def _notch_freqs_for(raw: mne.io.BaseRaw) -> list[float]:
+    """Line-noise frequencies to notch for *this particular recording*.
+
+    Prefers the recording's own `line_freq` (MOABB populates it per dataset from that
+    dataset's metadata: 50 Hz for the Graz IV-2a/2b sets, 60 Hz for OpenBMI, recorded in
+    Korea, and PhysioNet, recorded in the US) and falls back to `NOTCH_FREQS` when the
+    file carries none.
+
+    Why this exists: this module used to hardcode 50 Hz, which is correct for IV-2a - the
+    only dataset it currently cleans - but would silently leave 60 Hz line noise
+    untouched on any other dataset while notching a frequency that has no interference
+    there. The dataset audit (`results/char_dataset_audit.csv`, the `line_freq` column)
+    surfaced that the per-dataset mains frequency genuinely differs, so the value is read
+    from the data rather than assumed.
+
+    For IV-2a this returns exactly the old constant `[50.0, 100.0]`, so the existing
+    cache under `data/cleaned/` remains valid and no committed result changes.
+    """
+    line = raw.info.get("line_freq")
+    try:
+        line = float(line) if line is not None else None
+    except (TypeError, ValueError):
+        line = None
+    if line is None or not math.isfinite(line) or line <= 0:
+        return list(NOTCH_FREQS)
+    return [line, 2.0 * line]
 BANDPASS = (1.0, 40.0)  # general-purpose; narrower analysis-specific bands applied downstream, not baked in here
 # A variance-fraction n_components (e.g. 0.99) was tried first and found
 # broken: one dominant artifact captured 85.7% of this data's variance
@@ -59,7 +90,7 @@ def clean_raw(raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
     them before calling this.
     """
     raw = raw.copy().load_data()
-    raw.notch_filter(NOTCH_FREQS, picks="eeg", verbose=False)
+    raw.notch_filter(_notch_freqs_for(raw), picks="eeg", verbose=False)
     raw.filter(l_freq=BANDPASS[0], h_freq=BANDPASS[1], picks="eeg", verbose=False)
 
     ica = mne.preprocessing.ICA(n_components=N_ICA_COMPONENTS, random_state=ICA_RANDOM_STATE, max_iter="auto")
