@@ -1159,6 +1159,12 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 
 ## Part C — Recommended execution order (the next six experiments)
 
+> **Superseded for screening order (2026-11-04):** the cross-field research round produced a
+> ranked, library-backed quick-test catalogue with four gating diagnostics (oracle rotation,
+> oracle class means, per-run drift, pseudo-label reliability / peak shift) and a screening
+> protocol — see [`reports/Cross field BCI calibration methods.md`](reports/Cross%20field%20BCI%20calibration%20methods.md).
+> Run its diagnostics D1–D4 before any item below that they gate.
+
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
 1. **A27 + A1 (S–M).** Adopt the decision rule and power statement; then measure the
