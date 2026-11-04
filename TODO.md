@@ -1169,6 +1169,9 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > Closed: rotation, class-conditional, frequency warping, and drift tracking (R5: smooth
 > kernel/EMA re-centering, valid planted control, −0.7 to +0.2 pp). Open: self-training /
 > distillation / entropy TTA (D4a), augmentation, run-wise epoch selection + SWA.
+> **R6 (2026-11-04):** pseudo-label self-training passes the screen (+1.62 pp over the teacher
+> ensemble, 7/9, p = 0.047; Holm 0.070, not ADOPT); distillation and IM-TTA closed. Next:
+> confirm st frozen as-is on an external dataset.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

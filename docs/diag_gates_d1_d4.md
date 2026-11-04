@@ -178,3 +178,42 @@ The decline therefore sits in the task-related signal itself (consistent with D5
 reading and the drop in same-session decodability), not in a second-order shift a reference can
 undo. Remaining levers for it are on the training side (time-on-task-aware augmentation,
 run-weighted training) or self-training on E (D4a open), not on re-centering.
+
+## R6 — self-training on the unlabelled session: screen OPEN (`experiments/r6_self_training.py`)
+
+D4a left this family open, so three label-free uses of E were screened on ShallowConvNet
+(`src/adaptation/self_training.py`). Teacher = R3 `cnn_ra`, 5 seeds. Arms, gates and controls
+were fixed in the script docstring before the run, one setting each:
+**st** retrains on T + the confident 50% of E (per predicted class) with hard ensemble
+pseudo-labels; **distill** retrains on T + all E with the ensemble's soft probabilities;
+**im** tunes only BN affine parameters by information maximisation (SHOT-IM / Tent).
+The primary contrast is **5-seed ensemble vs the teacher's 5-seed ensemble**, so ensembling
+alone does not count as a gain.
+
+```powershell
+.venv\Scripts\python experiments\r6_self_training.py     # ~95 min, exit 0
+```
+
+**Validity (all passed):** every retrained teacher reproduces the cached R3 `cnn_ra` predictions
+(45/45 subject-seeds). Shuffled-pseudo-label control (subjects 1/3/7): −46.9/−51.0/−49.7 pp vs
+the teacher, i.e. the student follows its pseudo-labels and no path from true E labels exists.
+
+| Arm | Ensemble | vs teacher ensemble (77.58%) | WEAK {2,5,6} | Unconfident half of E | Single-model mean |
+|---|---|---|---|---|---|
+| teacher | 77.58% | — | — | 65.4% | 74.64% |
+| **st** | **79.21%** | **+1.62 pp, 7/9 up, p = 0.047** | +1.27 pp | **+3.26 pp** | **78.12%** |
+| distill | 77.85% | +0.27 pp, 5/9, p = 0.13 | +0.58 pp | +0.54 pp | 77.70% |
+| im | 78.20% | +0.62 pp, 4/9, p = 0.37 | +0.46 pp | +1.17 pp | 74.93% |
+
+**Verdict:** **st OPEN** by the screening gate; distill and im closed. ADOPT not reached: Holm
+one-sided p_adj = 0.070 for st (needs < 0.05), so this is a screen pass, not a result.
+
+Reading: the gain comes from where it must, the teacher's *unconfident* half (+3.3 pp); the
+confident half is ~90% right already. A single self-trained model (78.1%) beats the 5-seed teacher
+ensemble (77.6%) and the R3 single-model headline (74.7%) by +3.4 pp. Distillation is a clean
+by-product: one distilled model matches the ensemble (77.7% vs 77.6%) at 1/5 of the inference cost.
+IM-TTA adds little on top of RA, as AdaBN did.
+
+Caveats: transductive (E is used unlabelled before it is scored, like session-wise RA itself);
+one round, one confidence fraction; IV-2a only. Next is confirmation, not tuning: a fresh
+pre-registered run on another dataset (IV-2b / Stieger2021), with the setting frozen as is.
