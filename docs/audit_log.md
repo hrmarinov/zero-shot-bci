@@ -426,6 +426,22 @@ synthetic gate → sweep → independent audit.
 "ShallowConvNet on per-session RA input", not as an AdaBN result. Provisional pending
 external replication.
 
+## R4 — Gating diagnostics D1–D4
+
+`experiments/diag_gates_d1_d4.py`, gates fixed in its docstring before the full run; exit 0.
+Validity: Phase 2 and R3 seed-0 baselines bit-exact per subject; planted-rotation control
+VALID (drops 42–55 pp, oracle recovers within ±0.35 pp); run-wise no-op guard 8.3% changed.
+
+| Item | Finding | Resolution |
+|---|---|---|
+| pyriemann `_get_rotation_manifold` | stalls on 22-ch planted rotations (residual 0.13–0.23) → would understate D1 | replaced by `src/adaptation/rotation_oracle.py`, recovers to ~1e-6, unit-tested |
+| D3 drift reference (smoke run) | per-run distance measured to the identity, biased by OAS non-equivariance (~3.2 for every run) | reference changed to the session mean of the same estimates before the full run |
+| D2 gate design | in-sample oracle re-estimates class means on scored trials → near within-session training (MDM 77.4% in-sample vs 65.6% 2-fold) | verdict reported by the letter (OPEN) **and** cross-fitted (closed); lesson recorded in `docs/diag_gates_d1_d4.md` |
+
+Verdicts: D1 rotation CLOSED; D2 class-conditional effectively closed; D3 statistic trackers
+closed, but a real within-session accuracy decline (CSP −5.0 pp late vs early, 8/9) logged as a
+new open question; D4a self-training OPEN; D4b frequency warping CLOSED.
+
 ## Rejected / corrected so far
 
 | Item | What was wrong | Resolution |
