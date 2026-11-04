@@ -71,7 +71,11 @@ def accuracy_summary(y_true: np.ndarray, y_pred: np.ndarray) -> tuple[float, int
     which can't be tightened by repeated resampling the way within-session CV
     can.
     """
-    n_correct = int(np.sum(np.asarray(y_pred) == np.asarray(y_true)))
+    y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
+    if (y_true.dtype.kind in "USO") != (y_pred.dtype.kind in "USO"):
+        raise TypeError(f"label type mismatch: y_true {y_true.dtype} vs y_pred {y_pred.dtype} - "
+                        "comparing text to integer labels would silently score 0%")
+    n_correct = int(np.sum(y_pred == y_true))
     n_total = len(y_true)
     return n_correct / n_total, n_correct, n_total
 

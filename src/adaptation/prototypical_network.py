@@ -51,9 +51,9 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 import torch.nn.functional as F
-from pyriemann.estimation import Covariances
-from pyriemann.geometry.tangentspace import tangent_space
 from torch import nn
+
+from src.adaptation.spd_shrinkage import trial_tangent_vectors
 
 DEFAULT_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -90,25 +90,6 @@ class ProtoEncoder(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
-
-
-def trial_tangent_vectors(X: np.ndarray, estimator: str = "oas", normalize_trace: bool = True) -> np.ndarray:
-    """Per-trial covariances -> log-Euclidean tangent vectors (reference=I).
-
-    normalize_trace defaults True here (unlike spd_shrinkage.py's default
-    False) because this module's whole purpose is cross-dataset transfer
-    (PhysioNet base -> IV-2a target, different recording hardware) - see
-    spd_shrinkage.py's normalize_trace docstring for why this is provably
-    harmless to the downstream classifier and necessary to remove a cross-
-    hardware power-scale confound.
-    """
-    n_channels = X.shape[1]
-    reference = np.eye(n_channels)
-    covs = Covariances(estimator=estimator).fit_transform(X)
-    if normalize_trace:
-        traces = np.trace(covs, axis1=1, axis2=2)
-        covs = covs / traces[:, np.newaxis, np.newaxis]
-    return tangent_space(covs, reference, metric="logeuclid")
 
 
 @dataclass
@@ -232,8 +213,8 @@ def _episode_loss(
     else:
         raise ValueError(f"unknown episode_mode={episode_mode!r}, expected 'same_subject' or 'disjoint_subjects'")
 
-    support_t = torch.tensor(trial_tangent_vectors(X_s), dtype=torch.float32, device=device)
-    query_t = torch.tensor(trial_tangent_vectors(X_q), dtype=torch.float32, device=device)
+    support_t = torch.tensor(trial_tangent_vectors(X_s, normalize_trace=True), dtype=torch.float32, device=device)
+    query_t = torch.tensor(trial_tangent_vectors(X_q, normalize_trace=True), dtype=torch.float32, device=device)
     support_y_idx = torch.tensor([class_to_idx[l] for l in y_s], device=device)
     query_y_idx = torch.tensor([class_to_idx[l] for l in y_q], device=device)
     return _prototypical_loss(encoder, support_t, support_y_idx, query_t, query_y_idx, n_classes)
@@ -360,7 +341,7 @@ def compute_prototypes(encoder: ProtoEncoder, X_by_class: dict[str, np.ndarray],
     prototypes = {}
     with torch.no_grad():
         for label, X in X_by_class.items():
-            t = torch.tensor(trial_tangent_vectors(X), dtype=torch.float32, device=device)
+            t = torch.tensor(trial_tangent_vectors(X, normalize_trace=True), dtype=torch.float32, device=device)
             emb = encoder(t)
             prototypes[label] = emb.mean(dim=0).cpu().numpy()
     return prototypes
@@ -375,7 +356,7 @@ def predict_via_prototypes(
     labels = list(prototypes.keys())
     proto_mat = torch.tensor(np.stack([prototypes[l] for l in labels]), dtype=torch.float32, device=device)
     with torch.no_grad():
-        t = torch.tensor(trial_tangent_vectors(X), dtype=torch.float32, device=device)
+        t = torch.tensor(trial_tangent_vectors(X, normalize_trace=True), dtype=torch.float32, device=device)
         emb = encoder(t)
         dists = torch.cdist(emb, proto_mat) ** 2
         pred_idx = dists.argmin(dim=1).cpu().numpy()

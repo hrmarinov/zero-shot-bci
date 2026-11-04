@@ -131,3 +131,32 @@ def test_holm_adjust_matches_hand_computation() -> None:
     # sorted p: 0.01*3=0.03, 0.02*2=0.04, 0.04*1=0.04 (monotone), mapped back to input order
     assert holm_adjust([0.04, 0.01, 0.02]) == pytest.approx([0.04, 0.03, 0.04])
     assert holm_adjust([0.5, 0.9]) == pytest.approx([1.0, 1.0])
+
+
+def test_accuracy_summary_rejects_text_vs_integer_labels() -> None:
+    from src.evaluate import accuracy_summary
+
+    with pytest.raises(TypeError):
+        accuracy_summary(np.array(["left_hand", "feet"]), np.array([0, 2]))
+    assert accuracy_summary(np.array(["a", "b"]), np.array(["a", "a"]))[0] == 0.5
+    assert accuracy_summary(np.array([1, 2]), np.array([1, 2]))[0] == 1.0
+
+
+def test_riemannian_alignment_whitens_its_own_session_only() -> None:
+    """Core of both headline results: W · mean_riemann(covs) · W = I, transform = W @ X."""
+    from pyriemann.estimation import Covariances
+    from pyriemann.geometry.mean import mean_riemann
+
+    from src.adaptation.riemannian_align import RiemannianAlignment
+
+    rng = np.random.default_rng(0)
+    mix_a, mix_b = (rng.standard_normal((6, 6)) + 3 * np.eye(6) for _ in range(2))
+    X_a = np.einsum("cd,ndt->nct", mix_a, rng.standard_normal((40, 6, 300)))
+    X_b = np.einsum("cd,ndt->nct", mix_b, rng.standard_normal((40, 6, 300)))
+    ra_a, ra_b = RiemannianAlignment().fit(X_a), RiemannianAlignment().fit(X_b)
+    for X, ra in ((X_a, ra_a), (X_b, ra_b)):
+        mean_cov = mean_riemann(Covariances(estimator="oas").fit_transform(X))
+        np.testing.assert_allclose(ra.whitening_ @ mean_cov @ ra.whitening_, np.eye(6), atol=1e-8)
+        np.testing.assert_allclose(ra.transform(X), np.einsum("cd,ndt->nct", ra.whitening_, X))
+    assert not np.allclose(ra_a.whitening_, ra_b.whitening_), "fit must depend on the session given"
+    np.testing.assert_array_equal(RiemannianAlignment().fit(X_a, y=np.zeros(40)).whitening_, ra_a.whitening_)

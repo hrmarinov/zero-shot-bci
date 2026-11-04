@@ -64,10 +64,12 @@ class SPDEigenspacePrior:
     trial_sampling_var_: float
 
 
-def _trial_tangent_vectors(
-    X: np.ndarray, reference: np.ndarray, estimator: str = "oas", normalize_trace: bool = False
+def trial_tangent_vectors(
+    X: np.ndarray, reference: np.ndarray | None = None, estimator: str = "oas", normalize_trace: bool = False
 ) -> np.ndarray:
-    """Per-trial covariances, mapped to log-Euclidean tangent vectors.
+    """Per-trial covariances, mapped to log-Euclidean tangent vectors at ``reference``
+    (identity when None). The one implementation in the repo — riemannian_icp re-exports
+    it and prototypical_network calls it with normalize_trace=True.
 
     normalize_trace divides each trial's covariance by its own trace before
     mapping to tangent space. Needed when combining subjects recorded on
@@ -82,6 +84,8 @@ def _trial_tangent_vectors(
     *variance estimate*, not from the classifier's inputs.
     """
     covs = Covariances(estimator=estimator).fit_transform(X)
+    if reference is None:
+        reference = np.eye(covs.shape[1])
     if normalize_trace:
         traces = np.trace(covs, axis1=1, axis2=2)
         covs = covs / traces[:, np.newaxis, np.newaxis]
@@ -94,7 +98,7 @@ def logeuclid_mean_cov(X: np.ndarray, estimator: str = "oas") -> np.ndarray:
     which mean (log-Euclidean vs. affine-invariant Riemannian) is used."""
     n_channels = X.shape[1]
     reference = np.eye(n_channels)
-    mean_vec = _trial_tangent_vectors(X, reference, estimator=estimator).mean(axis=0)
+    mean_vec = trial_tangent_vectors(X, reference, estimator=estimator).mean(axis=0)
     return untangent_space(mean_vec[np.newaxis, :], reference, metric="logeuclid")[0]
 
 
@@ -113,7 +117,7 @@ def fit_population_prior(
     subject_means = []
     within_subject_devs = []
     for X in reference_subjects_X:
-        trial_vecs = _trial_tangent_vectors(X, reference, estimator=estimator, normalize_trace=normalize_trace)
+        trial_vecs = trial_tangent_vectors(X, reference, estimator=estimator, normalize_trace=normalize_trace)
         subject_mean = trial_vecs.mean(axis=0)
         subject_means.append(subject_mean)
         within_subject_devs.append(trial_vecs - subject_mean)
@@ -152,7 +156,7 @@ def shrink_subject_mean(
     even though a pure scalar is theoretically harmless to CSP+LDA accuracy.
     """
     n_trials = X_subject.shape[0]
-    trial_vecs = _trial_tangent_vectors(X_subject, prior.reference_, estimator=estimator, normalize_trace=normalize_trace)
+    trial_vecs = trial_tangent_vectors(X_subject, prior.reference_, estimator=estimator, normalize_trace=normalize_trace)
     raw_mean = trial_vecs.mean(axis=0)
 
     sampling_var = prior.trial_sampling_var_ / n_trials
@@ -202,7 +206,7 @@ def shrink_subject_mean_eigenspace(
     top-k eigenspace are dropped (fully pooled to the grand mean).
     """
     n_trials = X_subject.shape[0]
-    trial_vecs = _trial_tangent_vectors(X_subject, prior.reference_, estimator=estimator)
+    trial_vecs = trial_tangent_vectors(X_subject, prior.reference_, estimator=estimator)
     raw_mean = trial_vecs.mean(axis=0)
 
     centered = raw_mean - prior.grand_mean_

@@ -21,3 +21,12 @@ def test_parse_throttle_and_na_fields() -> None:
 def test_parse_rejects_malformed() -> None:
     with pytest.raises(ValueError):
         parse_status("61, 2445 MHz")
+
+
+def test_nan_temperature_does_not_stall(monkeypatch) -> None:
+    import src.gpu_health as gh
+
+    monkeypatch.setattr(gh, "free_ram_gb", lambda: 8.0)
+    monkeypatch.setattr(gh, "query_gpu", lambda: parse_status("[N/A], 0 MHz, [N/A], 100 MiB, Not Active, Not Active"))
+    monkeypatch.setattr(gh.time, "sleep", lambda s: (_ for _ in ()).throw(AssertionError("guard paused")))
+    assert math.isnan(gh.wait_until_healthy(log=lambda m: None).temp_c)

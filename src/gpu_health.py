@@ -9,6 +9,7 @@ CSV row by row and resumes, so an abort loses at most one run.
 
 from __future__ import annotations
 
+import math
 import subprocess
 import time
 from dataclasses import dataclass
@@ -80,6 +81,9 @@ def wait_until_healthy(max_pause_s: float = 1200.0, poll_s: float = 30.0, log=pr
         return None
     if status.mem_used_mb > MAX_VRAM_MB:
         raise HealthAbort(f"VRAM used {status.mem_used_mb:.0f} MB > {MAX_VRAM_MB} MB")
+    if math.isnan(status.temp_c):  # '[N/A]' reading: no evidence of heat, do not stall
+        log("[health] GPU temperature unavailable - continuing without thermal check")
+        return status
     if status.temp_c < PAUSE_AT_C and not status.thermal_throttle:
         return status
     waited = 0.0

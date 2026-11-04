@@ -31,7 +31,7 @@ from pyriemann.geometry.tangentspace import tangent_space
 
 from src.adaptation.geometric_correction import (
     _sample_size_feature,
-    _trial_tangent_vectors,
+    trial_tangent_vectors,
     predict_corrected_mean,
     train_geometric_correction,
 )
@@ -74,7 +74,7 @@ def run(n_reference_subjects: int, n_eval_subjects: int, sample_sizes: list[int]
             raw_le_cov = logeuclid_mean_cov(X_sub)
             learned_cov = predict_corrected_mean(model, X_sub, normalize_trace=True)
 
-            trial_vecs = _trial_tangent_vectors(X_sub, model.reference_, estimator="oas", normalize_trace=True)
+            trial_vecs = trial_tangent_vectors(X_sub, model.reference_, estimator="oas", normalize_trace=True)
             input_dev = trial_vecs.mean(axis=0) - model.grand_mean_
             x = np.concatenate([input_dev, _sample_size_feature(n)])
             model.net.eval()

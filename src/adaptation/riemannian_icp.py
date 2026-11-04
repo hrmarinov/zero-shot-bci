@@ -50,18 +50,10 @@ Three composable pieces, each independently testable:
 from dataclasses import dataclass
 
 import numpy as np
-from pyriemann.estimation import Covariances
-from pyriemann.geometry.tangentspace import tangent_space, untangent_space
+
+from src.adaptation.spd_shrinkage import trial_tangent_vectors  # noqa: F401 - re-exported for experiments
 
 EPS = 1e-12
-
-
-def trial_tangent_vectors(X: np.ndarray, estimator: str = "oas") -> np.ndarray:
-    """Per-trial covariances -> log-Euclidean tangent vectors (reference=I)."""
-    n_channels = X.shape[1]
-    reference = np.eye(n_channels)
-    covs = Covariances(estimator=estimator).fit_transform(X)
-    return tangent_space(covs, reference, metric="logeuclid")
 
 
 def recenter(vecs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

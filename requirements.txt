@@ -21,6 +21,7 @@ moabb==1.5.0
 neuroCombat==0.2.12
 numpy==2.4.6
 pandas==2.3.3
+psutil==7.2.2
 pyriemann==0.12
 requests==2.34.2
 scikit-learn==1.7.2
