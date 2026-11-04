@@ -406,6 +406,26 @@ the task.
 
 ---
 
+## R3 — ShallowConvNet + per-session normalisation (GPU)
+
+Process: full audit → five-member council (BCI/DL, statistician, cross-disciplinary,
+red-team, compute) → pre-registration committed (834b4e1) before any eval-session score →
+synthetic gate → sweep → independent audit.
+
+| Check | Result |
+|---|---|
+| Unit tests | 60/60; two AdaBN mutants (momentum left at 0.1; train-mode BN at prediction) each caught |
+| Synthetic gate | **partial pass** — G4 (59%) and G6 (64%) below the pre-set 70% recovery, *not loosened*; mutation, no-harm, drift checks pass |
+| Permuted-label control | first single-subject value 32.6% investigated before the sweep: 5 further permutations 20.8–29.5% (mean 25.7%) → overlap of permuted with true labels, not a leak. Sweep mean 27.2% |
+| Harness identity | `csp_ra` = Phase 2 bit-exact, per subject (asserted) |
+| Reproducibility | fresh-process rerun of subject 7, 13/13 rows + all probabilities bit-identical |
+| Independent audit | **ACCEPTED WITH CAVEAT** — leakage clean, all statistics and 36 accuracies re-derived; caveat: gain is RA-input + convnet, AdaBN adds nothing (S1 +0.08pp) |
+| Health | 1 thermal pause at 83 °C (guard resumed at <75 °C), peak RSS 1.2 GB |
+
+**Verdict: ACCEPTED WITH CAVEAT** — 74.7% (+7.8pp, p=0.0059) stands; described as
+"ShallowConvNet on per-session RA input", not as an AdaBN result. Provisional pending
+external replication.
+
 ## Rejected / corrected so far
 
 | Item | What was wrong | Resolution |

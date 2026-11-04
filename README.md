@@ -7,8 +7,9 @@ motor-imagery brain–computer interfaces (BCIs).
 The name states the goal, not the current state. The endpoint is a decoder that works on
 a new session — ideally a new user — with **no labelled calibration data at all**. What
 this repository contains is the measured path toward it: what works, what provably does
-not, and the evidence for each. The best result so far (66.9% cross-session on 4-class
-BCI Competition IV-2a) still requires a calibration session; the calibration-free
+not, and the evidence for each. The best result so far (74.7% cross-session on 4-class
+BCI Competition IV-2a, a subject-specific convnet on per-session Riemannian-aligned input —
+[`docs/convnet_session_norm.md`](docs/convnet_session_norm.md)) still requires a calibration session; the calibration-free
 alternatives are far behind and are documented as such.
 
 ---
@@ -37,7 +38,8 @@ deliberately hard — a method gets *one subject's own 288 calibration trials*, 
 
 | Method | Cross-session accuracy | Δ vs. baseline | Source |
 |---|---|---|---|
-| **CSP+LDA + Riemannian alignment** (Phase 2) — best overall | **66.9%** | +4.7pp | [`results/phase2_riemannian_alignment_iv2a.csv`](results/phase2_riemannian_alignment_iv2a.csv) |
+| **ShallowConvNet on per-session Riemannian-aligned input** (R3) — best overall, provisional | **74.7%** | +12.5pp | [`results/r3_convnet_session_norm_summary.csv`](results/r3_convnet_session_norm_summary.csv) |
+| CSP+LDA + Riemannian alignment (Phase 2) | 66.9% | +4.7pp | [`results/phase2_riemannian_alignment_iv2a.csv`](results/phase2_riemannian_alignment_iv2a.csv) |
 | CSP+LDA, no adaptation (Phase 1) | 62.2% | — | [`results/phase1_baseline_iv2a.csv`](results/phase1_baseline_iv2a.csv) |
 | Prototypical-network meta-learning (Phase 6) | 49.0% (std 16.1) | −13.2pp | [`results/phase6_prototypical.csv`](results/phase6_prototypical.csv) |
 | Wavelet per-session calibration (Phase 4b) | 31.4% | −30.8pp | [`results/phase4b_wavelet_per_channel.csv`](results/phase4b_wavelet_per_channel.csv) |
@@ -238,7 +240,9 @@ applied before trusting any new number:
 
 ## Status
 
-**Established:** CSP+LDA + Riemannian alignment, 66.9% cross-session.
+**Established:** CSP+LDA + Riemannian alignment, 66.9% cross-session. **New, provisional
+(pending external replication):** subject-specific ShallowConvNet on per-session
+Riemannian-aligned input, 74.7% (pre-registered, audited; AdaBN adds nothing on top).
 
 **Most promising active direction:** prototypical-network meta-learning with same-subject
 episodes (49.0%, four subjects at 59–67%). Open questions: the subject-5 chance-level

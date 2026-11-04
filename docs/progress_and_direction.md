@@ -10,6 +10,14 @@ than none, because it would misdirect the next round of work.
 
 ## Executive summary (read this first)
 
+- **R3 (2026-11-04): new best, 74.7% cross-session (+7.8pp over 66.9%), pre-registered
+  and audited.** A subject-specific ShallowConvNet on per-session Riemannian-aligned input,
+  trained on the GPU. The project's principle (per-session self-normalisation) holds - RA is
+  worth +11.4pp to the convnet - but the transplant it was tested with (AdaBN / speaker-
+  adaptive per-layer BN) adds nothing after RA. The CSP "ceiling" (68.9%) was a
+  representation ceiling, and the WEAK subjects 2/5/6 reach 57-60%, so R1-B's
+  "signal-limited" verdict was CSP-specific. Full write-up: `docs/convnet_session_norm.md`.
+  Provisional until replicated on IV-2b / OpenBMI.
 - **The refined core finding of this project, now confirmed across six
   attempts:** the failure mode is never really "population data" per se -
   it's specifically requiring a computation (a correction, or a training
@@ -1132,6 +1140,7 @@ against. Both are real, both are independently re-derivable from
 | **Within-session, *evaluation* session - the actual ceiling** | **68.9%** | Same-session repeated CV on the session that is being tested. This is the number 66.9% has to be compared against, and it is the correct bound: 3/9 subjects already exceed their own eval-session CV, and cross-aligned vs this ceiling is statistically indistinguishable (Wilcoxon p=0.30). Measured in `experiments/char_02_ceiling.py`; see `docs/ceiling_analysis.md` |
 | **Phase 1 - non-adapted CSP+LDA** | **62.2%** | Train on calibration session, test on eval session, zero correction |
 | **Phase 2 - Riemannian alignment** | **66.9%** | Per-session recentering (whiten each session's own trials to identity) before CSP+LDA. +4.7pp over Phase 1, statistically significant for 3/9 subjects individually (McNemar), real and reproducible |
+| **R3 - ShallowConvNet on per-session RA input (+ AdaBN)** | **74.7%** | Subject-specific convnet, 0-4 s / 4-38 Hz, 5-seed mean; +7.8pp over Phase 2 (95% CI +3.3..+12.3, 8/9, sign-flip p=0.0059), pre-registered, independently audited, bit-exact rerun. AdaBN adds +0.08pp (null) - the gain is RA input + convnet. 5-seed ensemble 78.3%. Provisional until external replication. See `docs/convnet_session_norm.md` |
 
 **Headroom, established and audited:** against the correct (evaluation-session) ceiling of
 68.9%, the aligned pipeline's 66.9% leaves **+1.9pp on the mean** - and that ceiling is a

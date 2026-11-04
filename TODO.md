@@ -675,6 +675,11 @@ conclusions, and the cheapest to falsify.
 
 ### A23. Small conv nets with cross-session fine-tuning `[pop-data, safe]` **Tier 3**
 
+> **DONE (R3, 2026-11-04) — the project's new best: 74.7%.** Subject-specific ShallowConvNet
+> on per-session RA input, no population data at all. AdaBN/SAT (A3's BN part) adds nothing
+> after RA. See `docs/convnet_session_norm.md`; next: external replication, calibration-burden
+> curve, causal/online alignment.
+
 **The oversight.** The deep-learning conclusion in this project is **literature-only**: §11
 rules out JEPA/foundation models for MI (S-JEPA 65% vs Riemannian 84.7%; LaBraM/LUNA/CBraMod/
 Laya at 0.47–0.51 balanced accuracy under frozen linear probing), and §4 notes EEGNet
