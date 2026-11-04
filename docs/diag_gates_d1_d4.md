@@ -361,3 +361,48 @@ From round 2 onwards:
 1. Every screen is scored on **both** datasets at once (18 subjects).
 2. A screen passes only if the pooled gain passes **and** the sign is positive on each dataset.
 3. Effects are reported as pooled estimates, not as the best dataset's number.
+
+## R10 — round 2 (IV-2a + IV-2b jointly): the CNN + TS-LR stack PASSES (`experiments/r10_round2_stack_position.py`)
+
+Pre-registered and committed (`95525d3`). This is the first screen under the joint rule:
+18 subjects, Holm-adjusted, and the sign must be positive on each dataset. It runs on CPU in
+about 5 minutes and uses the cached CNN predictions.
+
+| Dataset | CNN (single) | TS+LR | Stack (CNN seed + TS+LR) | Position-matched TS+LR |
+|---|---|---|---|---|
+| IV-2a | 75.21 | 69.25 | **77.88** | 69.44 |
+| IV-2b | 78.58 | 77.37 | **79.63** | 77.72 |
+
+| Contrast | Pooled | Up | p (Holm) | IV-2a | IV-2b | Verdict |
+|---|---|---|---|---|---|---|
+| stack − CNN | **+1.86 pp** | 17/18 | < 0.001 | +2.67 | +1.05 | **PASS** |
+| posmatch − TS+LR | +0.27 pp | 10/18 | 0.082 | +0.19 | +0.35 | killed |
+
+TS+LR alone (the classic Riemannian decoder) is weaker than the CNN: −5.95 pp on IV-2a and
+−1.20 pp on IV-2b.
+
+**Post-hoc control (descriptive): is the gain just from ensembling?**
+
+| | IV-2a | IV-2b |
+|---|---|---|
+| CNN, 2-seed ensemble (mean of 3 pairs) | 76.99 | 78.69 |
+| Stack: 1 CNN seed + TS+LR | 77.88 | 79.63 |
+| CNN, 3-seed ensemble | 78.09 | 78.81 |
+| **CNN, 3-seed ensemble + TS+LR** (0.5/0.5) | **78.97** | **80.05** |
+
+- Stack minus the 2-seed CNN ensemble: +0.91 pp pooled, 12/18 up, p = 0.008.
+- The 3-seed ensemble plus TS+LR minus the 3-seed ensemble alone: +1.06 pp pooled, 15/18 up,
+  p = 0.002. This is positive on both datasets (+0.89 and +1.24).
+- So about +1 pp comes from **model diversity**, not from the number of members. A weaker
+  Riemannian model still fixes some of the CNN's errors.
+
+**Status and caveats:**
+- The stack is the first method in the project whose gain holds on both datasets. It is the new
+  best pipeline: 3 CNN seeds plus TS+LR gives 79.0% on IV-2a and 80.1% on IV-2b, against the R3
+  single model at 75.2% and 78.6%.
+- The 0.5/0.5 weight was fixed a priori.
+- The pre-registered test is stack versus a single CNN. The diversity-versus-size comparison is
+  post-hoc.
+- No untouched third two-session dataset is available locally (Lee2019 exposes only one day
+  through MOABB, see docs/datasets.md §4). Any further steps that select more ensemble members
+  must therefore be scored on both datasets, with this R10 result as the bar to beat.

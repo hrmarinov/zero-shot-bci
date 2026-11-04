@@ -1181,6 +1181,9 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > **R9 (2026-11-05): FTSurrogate NOT CONFIRMED on IV-2b** (+0.70 pp, CI [−0.40, +1.81], p = 0.096).
 > **G0: FAIL** — pre-cue alpha has no trial-level link to correctness, so state conditioning (A/B) is closed.
 > Screens from round 2 onward are scored on IV-2a + IV-2b jointly (winner's curse, see docs).
+> **R10 (2026-11-05): the CNN + TS-LR probability stack PASSES on both datasets** (+1.86 pp pooled, 17/18,
+> Holm < 0.001; about +1 pp of it is diversity beyond a matched CNN ensemble). New best: 3 CNN seeds + TS+LR =
+> 79.0% (IV-2a), 80.1% (IV-2b). Position-matched training was killed.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
