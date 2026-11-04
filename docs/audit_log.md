@@ -393,8 +393,16 @@ behaviour-preserving for IV-2a, but that was luck of the design, not of the proc
 
 ### R1-A / R1-B / R1-C audit verdicts
 
-*(pending — filled in when each agent reports; each entry will list the re-run command,
-the reproduction result, and the verdict)*
+R1-A and R1-B: see their entries above.
+
+**R1-C — ceiling estimate + leakage audit (`experiments/char_02_ceiling.py`): ACCEPTED.**
+Re-run from a clean shell (2026-10-07 16:46, i.e. *after* the script's last edit at 16:16):
+exit 0, 675 s, `reproduction_ok=True` — all 7 reproduction checks bit-exact (max |diff| = 0)
+against the committed Phase 1/2 CSVs, CSV rewritten at the same timestamp. Independently
+re-checked in R3 (2026-11-04): the per-subject numbers in `docs/ceiling_analysis.md` §2 match
+`results/char_ceiling_iv2a.csv`. Caveat carried forward, and it matters for what comes next:
+the 68.9% "ceiling" bounds the CSP+LDA family on the 8–30 Hz / 0.5–2.5 s representation, not
+the task.
 
 ---
 

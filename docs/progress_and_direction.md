@@ -1128,9 +1128,21 @@ against. Both are real, both are independently re-derivable from
 
 | Method | Cross-session accuracy (9 IV-2a subjects, 4-class) | Notes |
 |---|---|---|
-| Within-session (upper bound-ish) | 65.1% | Same-session train/test, repeated CV |
+| ~~Within-session, *calibration* session (was labelled "upper bound-ish")~~ | 65.1% | **Corrected - this is the wrong session's bound and does not bound anything.** It is the *calibration* session's repeated CV, and only 3/9 subjects have cross-session accuracy below it (subject 7: 76.0% within vs 62.5% cross). See the corrected row below |
+| **Within-session, *evaluation* session - the actual ceiling** | **68.9%** | Same-session repeated CV on the session that is being tested. This is the number 66.9% has to be compared against, and it is the correct bound: 3/9 subjects already exceed their own eval-session CV, and cross-aligned vs this ceiling is statistically indistinguishable (Wilcoxon p=0.30). Measured in `experiments/char_02_ceiling.py`; see `docs/ceiling_analysis.md` |
 | **Phase 1 - non-adapted CSP+LDA** | **62.2%** | Train on calibration session, test on eval session, zero correction |
 | **Phase 2 - Riemannian alignment** | **66.9%** | Per-session recentering (whiten each session's own trials to identity) before CSP+LDA. +4.7pp over Phase 1, statistically significant for 3/9 subjects individually (McNemar), real and reproducible |
+
+**Headroom, established and audited:** against the correct (evaluation-session) ceiling of
+68.9%, the aligned pipeline's 66.9% leaves **+1.9pp on the mean** - and that ceiling is a
+ceiling for *this pipeline family* (CSP+LDA at 5-fold training size), not for the task. The
+evaluation session is genuinely easier than the calibration session, which the earlier table
+had silently assumed away: within-session CV rises 65.1% → 68.9% across sessions, and
+running the cross-session protocol in both directions gives 62.2% (calib→eval) vs 56.9%
+(eval→calib), +5.3pp, 7 wins/1 loss, p=0.016 - and that comparison holds the training-set
+size fixed at 288 trials, so it isolates test-session difficulty with no confound. Also
+measured: tuning CSP `n_components` by an inner CV *worsens* cross-session accuracy
+(66.1% vs 66.9%, p=0.30), so the fixed `n_components=8` is not what caps the pipeline.
 
 Riemannian alignment needs **no other subject's data at all** - it only
 uses the target session's own trials. This is the first hint of the
