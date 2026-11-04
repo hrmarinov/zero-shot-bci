@@ -1178,6 +1178,9 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > **R8 (2026-11-05): FTSurrogate augmentation PROMOTE** (+4.12 pp single model, 8/9, p = 0.012,
 > Holm 0.029; WEAK +6.1 pp; ensemble +2.39 pp). FrequencyShift, SmoothTimeMask, TimeReverse and
 > ChannelsDropout were killed. Next: a frozen confirmatory run on IV-2b before adoption.
+> **R9 (2026-11-05): FTSurrogate NOT CONFIRMED on IV-2b** (+0.70 pp, CI [−0.40, +1.81], p = 0.096).
+> **G0: FAIL** — pre-cue alpha has no trial-level link to correctness, so state conditioning (A/B) is closed.
+> Screens from round 2 onward are scored on IV-2a + IV-2b jointly (winner's curse, see docs).
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

@@ -306,3 +306,58 @@ within-session decline (D5), so the decline remains an open, separate problem.
 **Next (pre-registered rule):** PROMOTE means one confirmatory run with the setting frozen as is,
 on a second dataset (IV-2b, the same harness as R7). It is not adopted until then. R6/R7 showed
 that an IV-2a screen pass can fail to replicate.
+
+## R9 — FTSurrogate confirmation on IV-2b: NOT CONFIRMED (`experiments/r9_ftsurrogate_iv2b.py`)
+
+Pre-registered and committed (`c84de96`) before the run. The R8 setting was frozen. The run uses
+the R7 harness: train on 0train–2train, evaluate on 3test and 4test, RA per recording, and the R7
+teacher predictions as the seed-matched baseline.
+
+**Validity:** V1 passed — the seed-0 baseline reproduced the R7 teacher exactly for every subject.
+Baseline 78.58% (≥ 60%). Alignment checks passed.
+
+| | Baseline | FTSurrogate | Difference |
+|---|---|---|---|
+| Single model (3-seed mean) | 78.58% | 79.28% | **+0.70 pp, 95% CI [−0.40, +1.81], 7/9 up, one-sided p = 0.096** |
+| 3-seed ensemble | 78.81% | 79.59% | +0.79 pp |
+
+Per subject (pp): s1 −0.9, s2 +0.1, s3 +1.5, s4 −1.6, s5 +0.6, s6 +0.1, s7 +1.6, s8 +2.8, s9 +2.2.
+
+**Verdict: NOT CONFIRMED.** FTSurrogate is not adopted. The direction is the same, but the effect
+is about one-sixth of the IV-2a screen (+4.12 pp).
+
+## G0 — pre-cue alpha gate: FAIL (`experiments/g0_alpha_gate.py`)
+
+Pre-registered and committed (`b78ef26`). Session T only.
+- **Question:** does a trial's own pre-cue alpha predict whether leave-one-run-out CSP+LDA decodes
+  it correctly, beyond run index?
+- **Test:** combined likelihood-ratio test over the 9 subjects, chi2 with 9 df.
+
+| Analysis | Combined LR | p | Alpha coefficient < 0 |
+|---|---|---|---|
+| **T (gate)** | 9.73 | **0.37** | 5/9 |
+| T control (alpha permuted within each run) | 1.74 | 0.99 (control valid) | 6/9 |
+| E (descriptive) | 8.50 | 0.49 | 5/9 |
+
+**Verdict: FAIL.** The alpha–accuracy link from D5 exists only at the level of runs: both alpha
+and errors rise with time on task. Within a run, a trial's alpha says nothing about whether it
+will be decoded correctly. Ideas A (alpha residualisation) and B (alpha-conditioned FiLM) are
+closed without being built.
+
+## What R6–R9 and G0 say about the search itself
+
+Two methods passed the IV-2a screen and then shrank sharply on IV-2b:
+
+| Method | IV-2a screen | IV-2b result |
+|---|---|---|
+| Self-training | +1.62 pp | +0.22 pp |
+| FTSurrogate | +4.12 pp | +0.70 pp |
+
+This is the winner's curse. Screening many ideas on the same 9 E sessions and keeping the best one
+inflates the estimate. An "idea-space descent" that uses IV-2a E as its loss would mostly fit noise
+in those 9 sessions.
+
+From round 2 onwards:
+1. Every screen is scored on **both** datasets at once (18 subjects).
+2. A screen passes only if the pooled gain passes **and** the sign is positive on each dataset.
+3. Effects are reported as pooled estimates, not as the best dataset's number.
