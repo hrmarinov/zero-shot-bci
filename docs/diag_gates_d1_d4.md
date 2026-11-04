@@ -217,3 +217,34 @@ IM-TTA adds little on top of RA, as AdaBN did.
 Caveats: transductive (E is used unlabelled before it is scored, like session-wise RA itself);
 one round, one confidence fraction; IV-2a only. Next is confirmation, not tuning: a fresh
 pre-registered run on another dataset (IV-2b / Stieger2021), with the setting frozen as is.
+
+## R7 — confirmation on IV-2b: NOT CONFIRMED (`experiments/r7_self_training_iv2b.py`)
+
+The R6 setting was frozen and the protocol pre-registered in the script docstring and committed
+(`5434be7`) before the run. Data: BNCI2014_004, 9 subjects, 3 channels, left vs right hand;
+train on recordings 0train–2train, self-train on each of 3test/4test separately; Riemannian
+alignment per recording. One hypothesis, no multiplicity.
+
+```powershell
+.venv\Scripts\python experiments\r7_self_training_iv2b.py     # ~80 min, exit 0
+```
+
+**Validity (all passed):** teacher ensemble 79.1% (≥ 60%); shuffled pseudo-labels drop
+36.2/5.6/23.1 pp on subjects 1/3/7; teacher training deterministic; every alignment self-check passed.
+
+| | Teacher ensemble | Self-trained ensemble | Difference |
+|---|---|---|---|
+| IV-2b (mean of 3test/4test) | 79.07% | 79.29% | **+0.22 pp, 95% CI [−0.72, +1.16], 3/9 up, one-sided p = 0.30** |
+
+Per subject (pp): s1 +1.9, s2 −1.1, s3 +1.9, s4 0.0, s5 −0.6, s6 +1.6, s7 −0.6, s8 −0.9, s9 0.0.
+Single model: 78.62% → 79.09% (+0.47 pp).
+
+**Verdict: H1 NOT CONFIRMED.** Pseudo-label self-training is **not adopted**. The IV-2a gain
+(+1.62 pp) may be specific to that dataset or a screening false positive (Holm 0.070 already
+signalled that). It stays in the record as "IV-2a screen pass, failed external replication".
+
+Possible reasons (post-hoc, untested, and NOT grounds for a modified re-run on this data):
+2 classes leave less room on the unconfident half; three subjects are near ceiling (s4/s5/s8
+≥ 89%) and two near chance (s2/s3, 50–56%), where pseudo-labels carry little information; 3
+channels give far less spatial information to re-learn. Any follow-up would need a new
+pre-registration on a third dataset.

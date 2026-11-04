@@ -1172,6 +1172,9 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > **R6 (2026-11-04):** pseudo-label self-training passes the screen (+1.62 pp over the teacher
 > ensemble, 7/9, p = 0.047; Holm 0.070, not ADOPT); distillation and IM-TTA closed. Next:
 > confirm st frozen as-is on an external dataset.
+> **R7 (2026-11-04): NOT CONFIRMED on IV-2b** (+0.22 pp, CI [−0.72, +1.16], p = 0.30; all
+> validity checks passed). Self-training is not adopted. The adopted pipeline remains
+> ShallowConvNet + per-session RA (R3).
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
