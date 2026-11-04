@@ -1175,6 +1175,9 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > **R7 (2026-11-04): NOT CONFIRMED on IV-2b** (+0.22 pp, CI [−0.72, +1.16], p = 0.30; all
 > validity checks passed). Self-training is not adopted. The adopted pipeline remains
 > ShallowConvNet + per-session RA (R3).
+> **R8 (2026-11-05): FTSurrogate augmentation PROMOTE** (+4.12 pp single model, 8/9, p = 0.012,
+> Holm 0.029; WEAK +6.1 pp; ensemble +2.39 pp). FrequencyShift, SmoothTimeMask, TimeReverse and
+> ChannelsDropout were killed. Next: a frozen confirmatory run on IV-2b before adoption.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

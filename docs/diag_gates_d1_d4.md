@@ -248,3 +248,61 @@ Possible reasons (post-hoc, untested, and NOT grounds for a modified re-run on t
 ≥ 89%) and two near chance (s2/s3, 50–56%), where pseudo-labels carry little information; 3
 channels give far less spatial information to re-learn. Any follow-up would need a new
 pre-registration on a third dataset.
+
+## R8 — augmentation screen: FTSurrogate PROMOTE (`experiments/r8_augmentation.py`)
+
+Pre-registered in the script docstring and committed (`a156220`) before the run. Settings were fixed
+a priori from Rommel et al. 2022 (`src/adaptation/augmentation.py`), never tuned on E. Each
+augmentation was applied alone with p = 0.5 per trial, to ShallowConvNet on per-session RA input,
+with seeds 0–2. The comparator is R3 `cnn_ra` with seeds 0–2 (seed-matched).
+
+```powershell
+.venv\Scripts\python experiments\r8_augmentation.py     # ~75 min, exit 0
+```
+
+**Validity:**
+- V1: the seed-0 baseline retrained in this run reproduced R3 `cnn_ra` seed 0 exactly for every subject (asserted).
+- V2: the augmentation unit tests pass.
+- With `augment=None`, `train_model` is bit-identical to before.
+
+Baseline: single model 75.21%, 3-seed ensemble 78.09%.
+
+| Arm | Single (3-seed mean) | Δ vs baseline | Up | p (2-sided) | Subjects losing > 2 pp | WEAK {2,5,6} | Ensemble Δ | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| **ftsurrogate** | **79.32%** | **+4.12 pp** | 8/9 | 0.012 | 0 | +6.10 | +2.39 | **PROMOTE** |
+| freqshift | 75.40% | +0.19 | 6/9 | 0.76 | 2 | +0.73 | −0.46 | killed |
+| timemask | 74.97% | −0.23 | 3/9 | 0.72 | 1 | −1.58 | −0.96 | killed |
+| timereverse | 74.92% | −0.28 | 4/9 | 0.84 | 4 | −0.54 | −0.77 | killed |
+| chandrop | 72.67% | −2.53 | 1/9 | 0.027 | 6 | −1.39 | −1.62 | killed |
+
+Holm-adjusted one-sided p: ftsurrogate 0.029; all other arms 1.000.
+
+FTSurrogate gain per subject (pp): s1 +3.7, s2 −1.0, s3 +2.0, s4 +4.2, s5 +15.4, s6 +3.9,
+s7 +6.2, s8 +2.3, s9 +0.3. It also meets the catalogue's stricter promotion bar: at least 7/9
+non-negative and no subject below −5 pp.
+
+**Reading:**
+- This is the largest single gain in the project.
+- It is largest where it is most needed: weak subjects gain +6.1 pp on average, and s5 gains +15.4 pp.
+- This fits the "variance-limited" reading from R6 (the ensemble adds ~3 pp). FTSurrogate randomises
+  phase while keeping each channel's amplitude spectrum, which tells the network that only band
+  power carries the class. The squaring/log-variance layer of ShallowConvNet is built to read
+  exactly that.
+- FrequencyShift does nothing. This makes the subject-5 "peak shift" story less likely; that
+  subject's gain comes from FTSurrogate instead.
+- Channel dropout hurts on RA input.
+
+**Post-hoc descriptive check (not a gate):** I recomputed accuracy per E run from the cached
+predictions, as the 3-seed mean over 9 subjects.
+
+| E run | 1 | 2 | 3 | 4 | 5 | 6 | runs 4–6 minus runs 1–3 |
+|---|---|---|---|---|---|---|---|
+| baseline | 78.5 | 76.7 | 73.4 | 77.4 | 74.5 | 70.7 | −2.0 |
+| ftsurrogate | 82.9 | 80.0 | 77.4 | 81.4 | 78.6 | 75.5 | −1.6 |
+
+The gain is a level shift of +3.3 to +4.9 pp in every run. It does not remove the
+within-session decline (D5), so the decline remains an open, separate problem.
+
+**Next (pre-registered rule):** PROMOTE means one confirmatory run with the setting frozen as is,
+on a second dataset (IV-2b, the same harness as R7). It is not adopted until then. R6/R7 showed
+that an IV-2a screen pass can fail to replicate.
