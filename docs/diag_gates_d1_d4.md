@@ -143,3 +143,38 @@ normalisation) is now a well-motivated screen, not a closed one.
 Working interpretation (exploratory): a vigilance decrement — rising pre-cue alpha over time on
 task, with later runs harder to decode in both sessions — not electrode/artefact degradation
 (no rise in outliers, kurtosis, EMG band).
+
+## R5 — smooth drift trackers screened and closed (`experiments/r5_drift_tracking.py`)
+
+D5 re-opened the tracking family, so it was screened: trial *t* is whitened by a reference
+built near *t* instead of one per session (`src/adaptation/drift_tracking.py`), applied to T and E
+alike, per session, label-free. Arms and gates were fixed in the script docstring before the run;
+one setting each (σ = 48 trials, half-life 48 trials), no tuning. CNN = R3 `cnn_ra` config, 5 seeds.
+
+```powershell
+.venv\Scripts\python experiments\r5_drift_tracking.py     # ~70 min, exit 0
+```
+
+**Validity (all passed):** static CSP reproduces Phase 2 and static CNN seed 0 reproduces R3
+`cnn_ra` per subject bit-exactly; trials are in chronological run order; **planted drift** on
+subjects 1/3/7 (E mixed by expm((t/287)·S), max |eig S| = 1) drops static CSP by 31.9/16.3/19.4 pp
+and the kernel tracker recovers 27.8/16.3/19.1 pp. The tracker works when a covariance drift is
+the cause.
+
+| Arm (vs static) | CSP+LDA | ShallowConvNet | late − early runs (CSP / CNN) |
+|---|---|---|---|
+| static (session RA) | 66.94% | 74.64% | −5.0 / −2.6 pp |
+| kernel, non-causal | −0.66 pp (3/9 up, p = 0.29) | +0.21 pp (5/9, p = 0.41) | −4.2 / −2.2 pp |
+| causal_cum (running mean) | −0.89 pp (1/9, p = 0.047) | −0.92 pp (0/9, p = 0.004) | −3.6 / −2.5 pp |
+| causal_ema (half-life 48) | −0.73 pp (3/9, p = 0.13) | −0.75 pp (2/9, p = 0.043) | −3.1 / −1.9 pp |
+
+**Verdict: G1 closed on both models, so the tracking family is CLOSED** (with a valid positive
+control this time, unlike D3). G2 (forgetting vs no forgetting) +0.15 / +0.17 pp, closed. Causality
+costs ~0.8 pp against the transductive session mean.
+
+Reading: the drift D5 measured is real but is not what costs accuracy. Following it removes a
+planted drift of similar or larger size, yet barely flattens the real decline (CSP −5.0 → −4.2 pp).
+The decline therefore sits in the task-related signal itself (consistent with D5's vigilance
+reading and the drop in same-session decodability), not in a second-order shift a reference can
+undo. Remaining levers for it are on the training side (time-on-task-aware augmentation,
+run-weighted training) or self-training on E (D4a open), not on re-centering.

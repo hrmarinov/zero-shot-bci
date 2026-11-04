@@ -1164,6 +1164,11 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > oracle class means, per-run drift, pseudo-label reliability / peak shift) and a screening
 > protocol — see [`reports/Cross field BCI calibration methods.md`](reports/Cross%20field%20BCI%20calibration%20methods.md).
 > Run its diagnostics D1–D4 before any item below that they gate.
+>
+> **Gate results (2026-11-04):** D1–D5 and R5 in [`docs/diag_gates_d1_d4.md`](docs/diag_gates_d1_d4.md).
+> Closed: rotation, class-conditional, frequency warping, and drift tracking (R5: smooth
+> kernel/EMA re-centering, valid planted control, −0.7 to +0.2 pp). Open: self-training /
+> distillation / entropy TTA (D4a), augmentation, run-wise epoch selection + SWA.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
