@@ -219,3 +219,29 @@ def test_matches_braindecode_shallowfbcspnet_given_the_same_weights() -> None:
     x = torch.randn(8, n_chans, n_times, generator=torch.Generator().manual_seed(1))
     with torch.no_grad():
         torch.testing.assert_close(ours(x), ref(x), rtol=1e-4, atol=1e-4)
+
+
+def test_train_model_applies_augment_to_every_batch_and_none_is_unchanged() -> None:
+    from src.adaptation.convnet import ShallowConvNet, TrainConfig, set_deterministic, train_model
+
+    gen = torch.Generator().manual_seed(0)
+    X, y = torch.randn(20, 3, 120, generator=gen), torch.arange(20) % 2
+    cfg = TrainConfig(epochs=2, batch_size=10)
+
+    def fit(augment):
+        set_deterministic(0)
+        net = ShallowConvNet(3, 2, 120, n_filters=4, pool_size=30, pool_stride=10)
+        return train_model(net, X, y, cfg, seed=0, augment=augment).state_dict()
+
+    calls = []
+
+    def identity(xb):
+        calls.append(xb.shape[0])
+        return xb
+
+    base, with_identity = fit(None), fit(identity)
+    assert calls == [10, 10, 10, 10]
+    for k in base:
+        assert torch.equal(base[k], with_identity[k])
+    zeroed = fit(lambda xb: torch.zeros_like(xb))
+    assert not torch.equal(base["spatial_w"], zeroed["spatial_w"])

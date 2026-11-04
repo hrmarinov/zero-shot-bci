@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import os
 import random
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
@@ -216,12 +217,15 @@ def train_model(
     cfg: TrainConfig,
     seed: int,
     groups: np.ndarray | None = None,
+    augment: Callable[[torch.Tensor], torch.Tensor] | None = None,
 ) -> nn.Module:
     """Train on the calibration session only, for a fixed a-priori epoch budget.
 
     No early stopping: stopping on the evaluation session would select on its labels, and
     the budget is pre-registered instead (see the experiment's prereg file). Cosine-annealed
     AdamW, cross-entropy. ``groups`` switches on within-group batches (see make_batches).
+    ``augment`` (e.g. a braindecode transform) is applied to every training batch; ``None``
+    leaves training bit-identical to before (no extra random draws).
     """
     if X.shape[0] != y.shape[0]:
         raise ValueError("X and y length mismatch")
@@ -234,6 +238,8 @@ def train_model(
         for b in make_batches(X.shape[0], groups, cfg.batch_size, gen):
             idx = torch.as_tensor(b, device=X.device)
             xb = _random_shift(X[idx], cfg.max_shift, gen)
+            if augment is not None:
+                xb = augment(xb)
             opt.zero_grad(set_to_none=True)
             loss_fn(model(xb), y[idx]).backward()
             opt.step()
