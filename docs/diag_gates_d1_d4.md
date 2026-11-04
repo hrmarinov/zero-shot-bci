@@ -116,3 +116,30 @@ selection + SWA, (3) label smoothing + entropy/IM TTA, (7) self-training / label
 (4 per-session score standardisation, 9 CORAL, 11 TLScale, 13 RUV). Dropped by gates:
 rotation family (8, 15-adjacent), class-conditional family (6), frequency warping (12),
 statistic trackers. New open question: the within-session accuracy decline.
+
+## D5 — why accuracy declines within a session (follow-up, `experiments/diag_d5_within_session_decline.py`)
+
+Estimator identity: session-level ERD reproduces R1-B's CSV for all 9 subjects (atol 1e-9).
+Rules fixed in the script docstring; `posthoc_` measures added after the first run (exploratory).
+
+| Finding | Numbers (first→last run, 9 subjects) |
+|---|---|
+| Later runs are harder in **both** sessions, **both** directions | T→E −7.9 pp, E→T −7.2 pp (each p = 0.027). E→T rules out "distance from the calibration day": later T runs are *closer* to E and still worse → time on task |
+| Same-session (leave-one-run-out) decodability | E −4.5 pp (p = 0.020, 8/9); T −1.5 pp (n.s.) |
+| Pre-cue alpha rises (vigilance-decrement marker) | T 8/9 (p = 0.039), E 7/9 (p = 0.086); **best tracker of per-run accuracy, within-subject r = −0.44, p = 0.001** |
+| Pre-declared fatigue index (θ+α)/β | not significant → H2 **not supported by the letter**; the alpha evidence is exploratory |
+| Broadband power rises | T 9/9 (p = 0.004), E 7/9 (p = 0.066); theta and beta alone do not → largely the alpha rise |
+| ERD magnitude | no trend (mu, beta) |
+| Directional covariance drift (posthoc; distance from run 1, trend over runs 2–6 so the zero self-distance cannot bias it) | T 8/9 (p = 0.008), E 7/9 (p = 0.047); tracks accuracy r = −0.34 |
+
+**Correction to D3 (my design error):** D3 measured per-run distance from the *session mean*,
+which is U-shaped under a linear drift and therefore cannot detect one; its "no covariance
+trend" conclusion is withdrawn. There **is** a slow, monotone, label-free-measurable drift
+(rising alpha/broadband power). D3's only valid evidence against trackers is run-wise
+re-centering (−0.62 pp), which uses noisy 48-trial estimates. **The online-tracking family is
+re-opened as "uncertain"**: a smooth causal tracker (EMA/Kalman re-centering, or alpha-power
+normalisation) is now a well-motivated screen, not a closed one.
+
+Working interpretation (exploratory): a vigilance decrement — rising pre-cue alpha over time on
+task, with later runs harder to decode in both sessions — not electrode/artefact degradation
+(no rise in outliers, kurtosis, EMG band).
