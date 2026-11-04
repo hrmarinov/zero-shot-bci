@@ -131,9 +131,11 @@ with. Two things worth knowing before you install:
 
 - **`torch`**: plain PyPI gives you the CPU build. This work used the CUDA 12.4 build; for
   GPU, install torch from the PyTorch index first (see the comment in `requirements.txt`).
-- **`braindecode` is deliberately absent.** It was in the original working environment but
-  is not imported by any code here, and version 1.7.0 currently fails to import against
-  torch 2.6 (it needs a matching `torchaudio`). Don't add it without checking that first.
+- **`braindecode` is a dev dependency** (`requirements-dev.txt`), not needed for any result.
+  It only imports when `torchaudio` matches torch exactly: with torch 2.6.0+cu124 install
+  `torchaudio==2.6.0` from the PyTorch cu124 index with `--no-deps` *before* the dev file
+  (the command is in `requirements-dev.txt`). Our own `ShallowConvNet` is tested to give
+  identical outputs to braindecode's `ShallowFBCSPNet` under the same weights.
 
 Verify the install with the cheapest assertion-gated check, which needs no dataset and no
 download:

@@ -11,9 +11,9 @@
 #   pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
 #
 # Deliberately absent, though present in the original working environment:
-#   braindecode - never imported by any code here, and braindecode 1.7.0 fails to
-#                import against torch 2.6 because it needs torchaudio matching
-#                the torch version. Do not add it without checking that first.
+#   braindecode - not needed to reproduce any result; it is a dev dependency (see
+#                requirements-dev.txt) used by one equivalence test and for model
+#                comparisons. It needs torchaudio built for the SAME torch version.
 #   matplotlib  - never imported by any code here; moabb pulls it in via mne.
 
 mne==1.12.1

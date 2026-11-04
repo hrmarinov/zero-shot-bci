@@ -689,10 +689,10 @@ losses come from cross-subject zero-shot transfer.
 
 **Untested here:** a small conv net (EEGNet / ShallowConvNet / EEG-TCNet) trained
 *per-subject* on calibration and fine-tuned on the eval session's **unlabeled** trials
-(unsupervised) — which is A3's mechanism with a stronger backbone. Cost: L. **Practical
-blocker:** `braindecode` does not import in this environment (torchaudio/torch version
-mismatch, see `requirements.txt`), so this needs either a torchaudio fix or a ~200-line
-EEGNet implementation.
+(unsupervised) — which is A3's mechanism with a stronger backbone. Cost: L. ~~Practical
+blocker: braindecode does not import~~ — **resolved 2026-11-04**: torchaudio 2.6.0+cu124
+installed; EEGNet, ATCNet, EEGConformer, EEGTCNet and Deep4Net all build and run (see
+`requirements-dev.txt`).
 
 ---
 

@@ -186,3 +186,36 @@ def test_window_loader_reproduces_the_audited_loader() -> None:
     assert np.all(np.bincount(new.runs_eval) == 48)
     with pytest.raises(ValueError):
         load_iv2a_subject_window(1, 4, 38, -0.5, 4)
+
+
+def test_matches_braindecode_shallowfbcspnet_given_the_same_weights() -> None:
+    """Our matmul ShallowConvNet must be the reference architecture, not a look-alike.
+
+    Copies braindecode's (randomly initialised) weights and BN buffers into ours and
+    requires the same eval-mode outputs, so any drift in layer order, pooling, log,
+    flatten order or classifier layout fails here.
+    """
+    bd = pytest.importorskip("braindecode.models")
+    n_chans, n_times = 22, 1001
+    torch.manual_seed(0)
+    ref = bd.ShallowFBCSPNet(n_chans=n_chans, n_outputs=K, n_times=n_times).eval()
+    with torch.no_grad():
+        ref.bnorm.running_mean.uniform_(-0.5, 0.5)
+        ref.bnorm.running_var.uniform_(0.5, 2.0)
+        ref.bnorm.weight.uniform_(0.5, 1.5)
+        ref.bnorm.bias.uniform_(-0.2, 0.2)
+    ours = ShallowConvNet(n_chans, K, n_times).eval()
+    ct, cs = ref.conv_time_spat.conv_time, ref.conv_time_spat.conv_spat
+    clf = ref.final_layer.conv_classifier
+    assert ours.bn.eps == ref.bnorm.eps
+    with torch.no_grad():
+        ours.temporal_w.copy_(ct.weight[:, 0, :, 0])
+        ours.temporal_b.copy_(ct.bias)
+        ours.spatial_w.copy_(cs.weight[:, :, 0, :])
+        for name in ("weight", "bias", "running_mean", "running_var"):
+            getattr(ours.bn, name).copy_(getattr(ref.bnorm, name))
+        ours.classifier.weight.copy_(clf.weight.reshape(K, -1))
+        ours.classifier.bias.copy_(clf.bias)
+    x = torch.randn(8, n_chans, n_times, generator=torch.Generator().manual_seed(1))
+    with torch.no_grad():
+        torch.testing.assert_close(ours(x), ref(x), rtol=1e-4, atol=1e-4)
