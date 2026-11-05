@@ -476,3 +476,65 @@ dominated by class-dependent eye movement. Any < 4 Hz method on them needs an EO
 
 **New best pipeline:** (CNN3 + TS+LR + FTS2) / 3, giving **82.45% on IV-2a and 80.86% on IV-2b**.
 The previous best (R10) was 78.97% and 80.05%.
+
+## R12 — round 4: a fourth member; NO IMPROVEMENT, the loop stops (`experiments/r12_round4_fourth_member.py`)
+
+Ideation and scoring: `reports/r12_ideation_fourth_member.md`. Pre-registered and committed
+(`2a88087`) before the run. Comparator B = the R11 best, (CNN3 + TS+LR + FTS2) / 3.
+
+- **Arms (fourth member, weight 1/4 each):**
+  - `zoo`: the mean of ShallowConvNet seed 0 trained with each of FrequencyShift, SmoothTimeMask
+    and TimeReverse. IV-2a predictions come from the R8 cache; the 27 IV-2b fits were trained here
+    exactly as in R9.
+  - `late`: TS+LR on 2.0–4.0 s.
+- **Control:** `ctrl`, whose fourth member is base CNN seeds 3–4 plus FTSurrogate seed 2.
+- **Gate:** the same as R11, with Holm over 2 arms.
+
+**Validity (all passed):**
+- V1: trial order checked.
+- V2: all caches reproduce their recorded accuracies.
+- V3: B reproduces the R11 `fts` arm exactly.
+- V4: on the GPU path, the IV-2b seed-0 baseline reproduces the R7 teacher for all 9 subjects, and
+  subject 1's FTSurrogate seed 0 reproduces R9.
+- V5: a second run gives a byte-identical CSV.
+
+| Dataset | B | ctrl | zoo | late | members alone: zoo / late TS+LR / more seeds |
+|---|---|---|---|---|---|
+| IV-2a | 82.45 | 82.37 | 82.72 | 82.48 | 80.02 / 59.80 / 79.01 |
+| IV-2b | 80.86 | 80.57 | 81.38 | 81.30 | 80.41 / 71.26 / 79.84 |
+
+| Contrast | Pooled | Up / down | p (Holm) | IV-2a | IV-2b | Verdict |
+|---|---|---|---|---|---|---|
+| zoo − B | +0.40 pp | 9 / 5 | 0.095 (0.19) | +0.27 | +0.52 | killed |
+| late − B | +0.24 pp | 9 / 8 | 0.19 (0.19) | +0.04 | +0.44 | killed |
+| zoo − ctrl | +0.58 pp | 11 / 5 | 0.019 | +0.35 | +0.81 | some diversity, below the gate |
+| ctrl − B | −0.18 pp | 6 / 9 | 0.85 | −0.08 | −0.29 | more seeds of the existing families do nothing |
+
+**Reading:**
+- The member-addition axis has saturated. Per round, the gain over the previous best was:
+
+  | Round | Gain |
+  |---|---|
+  | R10, 2nd member | +1.86 pp |
+  | R11, 3rd member | +2.14 pp |
+  | R12, 4th member | +0.40 pp (n.s.) |
+
+- The zoo shows some real diversity against the control (+0.58 pp, p = 0.019), but too little to
+  clear +0.5 pp over B under Holm.
+- The three spectrum-preserving augmentations make errors much closer to the base CNN's than
+  FTSurrogate does. That fits R11's reading: phase randomisation is what changes the CNN's errors.
+
+**Loop stopping decision.** This round brought no improvement, so the ideation → screen loop
+stops here.
+- The remaining candidates from rounds 3–4 all score F ≤ 0.43, or need every CNN to be retrained
+  so its weights are saved: test-time FTSurrogate, and leave-one-run-out weights or stacking on the
+  training session.
+- Re-opening the loop should start from a new axis rather than another member, for example
+  test-time augmentation. It should be pre-registered against B.
+
+**Final best pipeline (R11):** mean probabilities of 3 base ShallowConvNet seeds, TS+LR, and 2
+FTSurrogate ShallowConvNet seeds, at weights 1/3 each. This gives **82.45% on IV-2a and 80.86% on
+IV-2b**, against the R3 single model at 75.21% and 78.58%.
+- Caveat: the IV-2a part of R11's gain is inflated by subject 5, and FTSurrogate was itself
+  selected on IV-2a's evaluation session.
+- No untouched dataset confirms this pipeline yet.

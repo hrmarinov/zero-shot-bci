@@ -1191,6 +1191,11 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > The 0.5–4 Hz time-course member passed by the letter but is **INVALID**. It is ocular: in R11b, the EOG
 > channels alone decode the class and add +3.3 pp. Every < 4 Hz method on IV-2a/2b now needs an EOG control.
 > Filter-bank TS+LR was killed (+0.46 pp).
+> **R12 (2026-11-05): NO IMPROVEMENT, so the idea loop stops.** Two candidate fourth members were tried and
+> both were killed. The augmentation zoo (FrequencyShift / TimeMask / TimeReverse CNNs) gained +0.40 pp
+> (Holm 0.19). Late-window TS+LR gained +0.24 pp. Adding more members has saturated, so the R11 pipeline
+> stays the best. To restart the loop, use a new axis, e.g. test-time FTSurrogate, which needs the CNN
+> weights saved. Pre-register it against the R11 best.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
