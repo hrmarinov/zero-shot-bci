@@ -22,7 +22,7 @@ P300 (4-letter speller, flash-level Target vs NonTarget; metric ROC AUC on the t
   p_ens     mean of p_ts_ra and p_lda probabilities (the "diverse second member").
 SSVEP (4 classes, 10/11/12/13 Hz; metric accuracy):
   epochs 0.5-4.5 s after stimulus onset, resampled to 250 Hz, 8 occipital channels
-  (PO7, PO3, POZ, PO4, PO8, O1, OZ, O2).
+  (PO7, PO3, POz, PO4, PO8, O1, Oz, O2).
   s_ts      filter bank 9.5-10.5 / 10.5-11.5 / 11.5-12.5 / 12.5-13.5 Hz stacked along channels (32 rows)
             -> OAS covariance -> tangent space -> LR (C=1), no alignment.
   s_ts_ra   the same with per-session Riemannian alignment of the stacked signal (src.pipeline.align_by_group).
@@ -75,7 +75,7 @@ from src.pipeline import align_by_group  # noqa: E402
 
 mne.set_log_level("ERROR")
 SUBJECTS = [2, 3, 4, 5, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 23, 25]
-OCCIPITAL = ["PO7", "PO3", "POZ", "PO4", "PO8", "O1", "OZ", "O2"]
+OCCIPITAL = ["PO7", "PO3", "POz", "PO4", "PO8", "O1", "Oz", "O2"]  # names as in the loaded raw files
 SSVEP_CLASSES = ["10.0", "11.0", "12.0", "13.0"]
 FB = [(9.5, 10.5), (10.5, 11.5), (11.5, 12.5), (12.5, 13.5)]
 HYPOTHESES = {"P1": ("p_ts_ra", "p_ts"), "P2": ("p_ens", "p_ts_ra"),
