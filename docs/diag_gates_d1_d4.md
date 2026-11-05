@@ -406,3 +406,73 @@ TS+LR alone (the classic Riemannian decoder) is weaker than the CNN: −5.95 pp 
 - No untouched third two-session dataset is available locally (Lee2019 exposes only one day
   through MOABB, see docs/datasets.md §4). Any further steps that select more ensemble members
   must therefore be scored on both datasets, with this R10 result as the bar to beat.
+
+## R11 — round 3: a third ensemble member; FTSurrogate CNNs PASS, low-frequency member INVALID (ocular) (`experiments/r11_round3_diverse_members.py`)
+
+Ideation and scoring: `reports/r11_ideation_ensemble_diversity.md` (F = 0.5·coherence +
+0.5·unavailability). Pre-registered and committed (`cf41e0c`) before the run. CPU only; no new
+CNNs were trained (cached r3/r7/r8/r9 predictions).
+
+- **Comparator (R10 best):** r10 = 0.5·CNN3 + 0.5·TS+LR (CNN3 = base ShallowConvNet seeds 0–2).
+- **Arms (third member, equal 1/3 weights, all settings a priori):**
+  - `lowfreq`: 0.5–4 Hz time course, 100 ms bins, per-session z-scoring, shrinkage LDA;
+  - `fts`: FTSurrogate ShallowConvNet seeds 0–1;
+  - `fbts`: filter-bank TS+LR over six bands from 4 to 38 Hz.
+- **Size-matched control:** `ctrl` = (CNN3 + TS+LR + base CNN seeds 3–4) / 3.
+- **Gate:** pooled ≥ +0.5 pp, Holm one-sided sign-flip p < 0.05 over the 3 arms, and > 0 on each dataset.
+
+```powershell
+.venv\Scripts\python experiments\r11_round3_diverse_members.py     # ~20 min, exit 0
+```
+
+**Validity (all passed):**
+- V1: every loader's labels, runs and recordings match the wide CNN loader.
+- V2: every cache's recomputed accuracy equals its recorded r3/r7/r8/r9 value (< 1e-9).
+- V3: R10's cnn, tslr and stack accuracies are reproduced exactly for all 18 subjects.
+- V4: a second full run gives a byte-identical CSV.
+
+| Dataset | r10 | ctrl | **fts** | fbts | lowfreq | member alone: FTS2 / FB / LF |
+|---|---|---|---|---|---|---|
+| IV-2a | 78.97 | 79.24 | **82.45** | 79.63 | 80.63 | 79.98 / 71.03 / 46.57 |
+| IV-2b | 80.05 | 79.44 | **80.86** | 80.31 | 82.50 | 79.51 / 77.87 / 67.43 |
+
+| Contrast | Pooled | Up / down | p (Holm) | IV-2a | IV-2b | Verdict |
+|---|---|---|---|---|---|---|
+| **fts − r10** | **+2.14 pp** | 15 / 3 | 0.0009 (0.0018) | +3.47 | +0.81 | **PASS** |
+| lowfreq − r10 | +2.06 pp | 14 / 4 | 0.0006 (0.0018) | +1.66 | +2.45 | PASS by the letter → **INVALID** (see R11b) |
+| fbts − r10 | +0.46 pp | 10 / 7 | 0.19 (0.19) | +0.66 | +0.27 | killed |
+| fts − ctrl (diversity) | +2.31 pp | 16 / 0 | < 0.001 | +3.20 | +1.41 | credited to diversity |
+| fbts − ctrl | +0.63 pp | 13 / 4 | 0.13 | +0.39 | +0.87 | not credited |
+| ctrl − r10 (member count) | −0.17 pp | 7 / 10 | 0.66 | +0.27 | −0.60 | adding CNN seeds does nothing |
+
+**R11b — post-hoc ocular check (`experiments/r11b_lowfreq_eog_check.py`, descriptive, not pre-registered).**
+The low-frequency member decoded far above chance on its own, which is the signature of eye
+movements towards the cue arrow (or, in IV-2b, following the feedback smiley). We rebuilt the
+member exactly on the EEG channels (reproduces R11, max |diff| 0.000 pp) and on the **3 EOG
+channels only**:
+
+| | IV-2a | IV-2b | As third member, − r10 |
+|---|---|---|---|
+| LF member on EEG | 46.57 | 67.43 | +2.06 pp, 14/18 up |
+| LF member on **EOG only** | 44.60 | 69.56 | **+3.28 pp**, 13/18 up |
+
+EOG alone carries the same class information, and its gain as a member is even larger. **So the
+`lowfreq` gain is ocular, not motor imagery. It is invalid as a BCI result and is not adopted.**
+This is a legitimate finding about the datasets: the cue-locked < 4 Hz band of IV-2a/2b is
+dominated by class-dependent eye movement. Any < 4 Hz method on them needs an EOG control.
+
+**Reading of `fts`:**
+- FTSurrogate CNNs do not replicate as a *replacement* for the base CNN on IV-2b (R9, +0.70 pp).
+  As an additional *member* they pass on both datasets.
+- Against the size-matched control the gain is 16/18 up and 0 down, with +1.41 pp on IV-2b.
+  Adding two more base seeds instead does nothing (−0.17 pp). The gain is therefore
+  augmentation-induced diversity, not member count.
+
+**Caveats:**
+- The IV-2a part is inflated by s5 (+14.2 pp); FTSurrogate itself was selected on IV-2a E in R8.
+  Without s5 the pooled gain is +1.43 pp. IV-2b (+0.81 pp; s1 −1.6, s7 −0.9) is the cleaner estimate.
+- The 1/3 weights were fixed a priori. No weights were fitted.
+- Combining `fts` with other members is not tested here.
+
+**New best pipeline:** (CNN3 + TS+LR + FTS2) / 3, giving **82.45% on IV-2a and 80.86% on IV-2b**.
+The previous best (R10) was 78.97% and 80.05%.

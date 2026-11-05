@@ -1184,6 +1184,13 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > **R10 (2026-11-05): the CNN + TS-LR probability stack PASSES on both datasets** (+1.86 pp pooled, 17/18,
 > Holm < 0.001; about +1 pp of it is diversity beyond a matched CNN ensemble). New best: 3 CNN seeds + TS+LR =
 > 79.0% (IV-2a), 80.1% (IV-2b). Position-matched training was killed.
+> **R11 (2026-11-05): FTSurrogate CNNs as a third ensemble member PASS** (+2.14 pp over R10 pooled, 15/18,
+> Holm 0.0018; IV-2a +3.47, IV-2b +0.81). Against a size-matched control (two extra base seeds), the arm
+> wins on 16/18 subjects and loses on none, so the gain is diversity. New best: (3 CNN + TS+LR + 2 FTS-CNN) / 3 =
+> 82.5% (IV-2a), 80.9% (IV-2b).
+> The 0.5–4 Hz time-course member passed by the letter but is **INVALID**. It is ocular: in R11b, the EOG
+> channels alone decode the class and add +3.3 pp. Every < 4 Hz method on IV-2a/2b now needs an EOG control.
+> Filter-bank TS+LR was killed (+0.46 pp).
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
