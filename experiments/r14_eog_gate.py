@@ -37,7 +37,7 @@ VALIDITY:
   V1 The raw-epoch EEG arrays cut here (MOABB IIR filter, MOABB window) equal the harness loader's
      arrays for both bands (max |diff| <= 1e-6 x max |X|), with identical labels and recordings.
   V2 TS+LR on the raw EEG reproduces R11's m_tslr per subject (< 1e-12); the regression residual is
-     uncorrelated with the EOG channels on the training session (max |corr| < 1e-4; float64 round-off on
+     orthogonal to the EOG channels on the training session (max |uncentred cosine| < 1e-4; float64 round-off on
      near-collinear EOG channels reaches ~1e-6, i.e. ~1e-12 of shared variance).
   V3 B recomputed from the caches equals the R11 "fts" arm (< 1e-12).
   V4 Determinism: a second run with warm caches gives a byte-identical CSV; the IV-2b subject-1 caches
@@ -122,7 +122,9 @@ def eog_regress(eeg: np.ndarray, eog: np.ndarray, train: np.ndarray) -> tuple[np
     coef = np.linalg.lstsq(a, b, rcond=None)[0]
     clean = eeg - np.einsum("nct,ce->net", eog, coef)
     resid = clean[train].transpose(0, 2, 1).reshape(-1, eeg.shape[1])
-    corr = np.corrcoef(np.hstack([resid, a]).T)[: eeg.shape[1], eeg.shape[1]:]
+    # The fit has no intercept, so least squares guarantees UNCENTRED orthogonality (resid . eog = 0);
+    # a centred correlation is not zero when epochs keep a DC offset (e.g. a 0.5 Hz high-pass).
+    corr = (resid.T @ a) / np.outer(np.linalg.norm(resid, axis=0), np.linalg.norm(a, axis=0))
     if not np.abs(corr).max() < TOL_CORR:
         raise AssertionError(f"V2: regression residual still correlates with EOG ({np.abs(corr).max():.2e})")
     removed = 1 - clean[~train].var() / eeg[~train].var()
