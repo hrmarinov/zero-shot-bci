@@ -81,6 +81,10 @@ FB = [(9.5, 10.5), (10.5, 11.5), (11.5, 12.5), (12.5, 13.5)]
 HYPOTHESES = {"P1": ("p_ts_ra", "p_ts"), "P2": ("p_ens", "p_ts_ra"),
               "S1": ("s_ts_ra", "s_ts"), "S2": ("s_ens", "s_ts_ra")}
 N_BOOT = 10_000
+# Deviation recorded before any SSVEP result for this subject was computed: the Zenodo archive S12.zip (record
+# 18978288, md5 matches Zenodo) has its Sess01 members before the start of the file (negative offsets), so the
+# first SSVEP session of subject 12 cannot be read. Subject 12 is dropped from SSVEP only (n = 16 there).
+SSVEP_UNAVAILABLE = {12: "hosted S12.zip is truncated: Sess01 BDF/sync unreadable"}
 
 
 def first_two(meta: pd.DataFrame, tag: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -182,11 +186,12 @@ def summarise(df: pd.DataFrame) -> None:
     print(f"\n=== X1 cross-paradigm session transfer, {len(df)} subjects (P300: AUC, SSVEP: accuracy) ===")
     print((100 * df[arms].mean()).round(2).to_string())
     rng = np.random.default_rng(0)
-    ps = {h: sign_flip_permutation_test(100 * (df[a] - df[b]).to_numpy(), "greater") for h, (a, b) in HYPOTHESES.items()}
+    ps = {h: sign_flip_permutation_test(100 * (df[a] - df[b]).dropna().to_numpy(), "greater")
+          for h, (a, b) in HYPOTHESES.items()}
     holm = dict(zip(ps, holm_adjust(list(ps.values()))))
     print("\nHYPOTHESES (one-sided sign-flip, Holm over four):")
     for h, (a, b) in HYPOTHESES.items():
-        d = 100 * (df[a] - df[b]).to_numpy()
+        d = 100 * (df[a] - df[b]).dropna().to_numpy()
         boots = d[rng.integers(0, len(d), (N_BOOT, len(d)))].mean(1)
         lo, hi = np.percentile(boots, [2.5, 97.5])
         ok = holm[h] < 0.05 and d.mean() > 0
@@ -221,7 +226,9 @@ def main() -> int:
         occ = OCCIPITAL
     rows = []
     for s in subjects:
-        row = {"subject": s, **run_p300(p_ds, s, p300_kw), **run_ssvep(s_ds, s, fb_kw, bb_kw, occ)}
+        ssvep = ({k: np.nan for k in ("s_ts", "s_ts_ra", "s_cca", "s_ens", "s_n_test")}
+                 if (not args.dry_run and s in SSVEP_UNAVAILABLE) else run_ssvep(s_ds, s, fb_kw, bb_kw, occ))
+        row = {"subject": s, **run_p300(p_ds, s, p300_kw), **ssvep}
         rows.append(row)
         print(f"  s{s}: " + ", ".join(f"{k} {v:.3f}" for k, v in row.items() if k not in ("subject",) and "n_test" not in k),
               flush=True)
