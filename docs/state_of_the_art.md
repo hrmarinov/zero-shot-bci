@@ -93,14 +93,18 @@ is optimistic.
 result we found. R11 is **2.3 pp below on IV-2a** and **6.9 pp below on IV-2b**. CTNet (82.52 / 88.49)
 is on par with R11 on IV-2a and far ahead on IV-2b.
 
-**What the IV-2b gap suggests.** In CTNet's leak-free comparison, a plain ShallowConvNet scores
-85.13% on IV-2b. Our ShallowConvNet scores 78.58%. So our IV-2b pipeline probably loses about 6 pp
-*before* any ensembling, and the architecture is not the cause. Candidates to test, cheapest first:
-- the input window and band (ours: 4–38 Hz, 0–4 s, per-recording RA on a 3×3 covariance);
-- RA on 3 channels may hurt rather than help;
-- the training budget (we use 300 epochs; they use 500–1000, with segment-and-recombine augmentation);
-- whether they also train on the feedback recordings' structure differently.
-This is the largest single gap between us and the published state of the art.
+**The IV-2b gap is eye movement (D6, `docs/diag_gates_d1_d4.md`).** In CTNet's leak-free comparison, a
+plain ShallowConvNet scores 85.13% on IV-2b; ours scores 78.58%. We switched our single ShallowConvNet
+to the published data path:
+- the 0.5–100 Hz band reaches 82.9% (+4.4 pp), and the full recipe reaches 82.3%;
+- the alignment change and the longer training do not help;
+- regressing the 3 EOG channels out of the broadband EEG brings the recipe back to 77.8% (−4.6 pp, 8 of
+  9 subjects down, p = 0.004).
+
+IV-2b's test recordings are feedback sessions in which gaze follows the class-dependent smiley. So the
+published IV-2b numbers, which use broadband input, very likely include about 4–5 pp of eye-movement
+decoding. The honest IV-2b bar is lower than 87.7%, and no paper reports an EOG-controlled IV-2b number.
+On IV-2a, the 2.3 pp gap to TCFormer remains the real target.
 
 **Comparability caveats.** These are single papers, each tuned by its authors on these same test
 sessions over years of reuse. None is an independent replication. Our numbers carry the same kind of

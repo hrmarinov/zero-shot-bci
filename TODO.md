@@ -1215,6 +1215,11 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > (`fit_predict` with `R11` / `R10` / `LITE` configs). `experiments/check_pipeline_reproduces_r11.py`
 > retrained all 90 members through it and reproduced R11 exactly. Next: pre-register the lockbox
 > confirmation (BNCI2015_001) of R11, LITE and a size-matched CNN ensemble, raw and EOG-clean.
+>
+> **D6 (2026-11-05): the IV-2b gap to published results is eye movement.** Moving our ShallowConvNet
+> to the published 0.5-100 Hz data path gives +4.4 pp on IV-2b (82.9%), but regressing out EOG removes
+> it all (recipe 82.3 -> 77.8%, 8/9 down, p = 0.004). Published IV-2b SOTA (85-90%) likely includes
+> ~4-5 pp of ocular decoding; we keep 4-38 Hz. The real remaining gap is IV-2a: 2.3 pp to TCFormer.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

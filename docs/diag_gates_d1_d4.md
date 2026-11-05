@@ -677,3 +677,57 @@ This was step 2 of the council's sequence (`reports/r14_council_and_ideation.md`
 LITE is descriptive only: it was not screened, and seed 0 is a favourable draw. The seed-averaged
 council ablation gives 80.79 / 80.84. It needs a pre-registered non-inferiority test, ideally on the
 lockbox dataset, before it can replace R11.
+
+## D6 — the IV-2b gap to the published ShallowConvNet is eye movement (`experiments/d6_iv2b_gap.py`)
+
+**Question.** CTNet's leak-free reimplementation of ShallowConvNet scores 85.13% on IV-2b; ours scores
+78.58% (`docs/state_of_the_art.md` §0). The gap sits *below* any ensembling. The diagnostic was
+pre-registered and committed (`e75f782`) before the run.
+
+**Design.** A single ShallowConvNet on IV-2b, seeds 0–2, with one change at a time towards the published
+data path (EEG-Conformer / CTNet):
+- the 0.5–100 Hz band;
+- a global z-score instead of Riemannian alignment;
+- 1000 epochs instead of 300;
+- all three together ("recipe");
+- the recipe on EOG-regressed EEG (R14's regression, coefficients fitted on the training recordings).
+
+**Fix during the run.** The regression's self-check used a centred correlation. Least squares without an
+intercept only guarantees *uncentred* orthogonality, and the 0.5 Hz high-pass leaves an offset, so the
+check fired (1.6e-4) on subject 5. It now checks the uncentred cosine (`99cbedd`). A warm rerun of R14
+gives a byte-identical CSV, so R14's results are unchanged.
+
+**Validity (all passed):**
+- V1: the 4–38 Hz epochs equal the harness arrays.
+- V2: the base cell retrained here reproduces the cached R7 teacher.
+- V3: a warm rerun gives a byte-identical CSV.
+
+| Cell (single model, mean of 3 seeds) | IV-2b | − base | Up / down | p |
+|---|---|---|---|---|
+| base: RA, 4–38 Hz, 300 epochs (ours) | 78.58 | — | | |
+| global z-score, no RA | 76.63 | −1.94 | 3 / 6 | 0.95 |
+| **0.5–100 Hz band** | **82.93** | **+4.35** | 6 / 3 | 0.045 |
+| 1000 epochs | 77.82 | −0.76 | 3 / 5 | 0.94 |
+| recipe (0.5–100 Hz, z-score, 1000 epochs) | 82.33 | +3.75 | 5 / 4 | 0.12 |
+| **recipe on EOG-regressed EEG** | **77.76** | −0.82 | 4 / 5 | 0.65 |
+| *recipe − recipe on EOG-regressed EEG (ocular share)* | | **+4.57** | **8 / 1** | **0.004** |
+
+The 3-seed ensembles give the same picture: the ocular share is +4.26 pp, with 9 subjects up and none
+down.
+
+**Reading:**
+- The whole IV-2b gap comes from **the band**: the 0.5–4 Hz content. Neither alignment (z-score is
+  −1.9 pp) nor the longer training (−0.8 pp) contributes.
+- That gain is **ocular**. Regressing the 3 EOG channels out of the broadband EEG removes all of it and
+  more (82.3 → 77.8, 8 of 9 subjects down). The gainers lose the most: s3 69.8 → 59.9, s5 95.7 → 84.5,
+  s7 88.1 → 78.4.
+- This matches R11b. IV-2b's test recordings are feedback sessions in which gaze follows the
+  class-dependent smiley.
+- **Implication for the state of the art.** Published IV-2b numbers (85–90%) come from the broadband
+  data path, so they very likely include about 4–5 pp of eye-movement decoding. On EOG-clean input, the
+  published recipe (77.8%) is no better than ours (EOG-clean 77.8% in R14).
+- Our 4–38 Hz band already excludes most of the ocular content: R14 measured about 1 pp. So our 78.6% is
+  close to the honest neural ceiling of this architecture on IV-2b.
+- **Decision:** do *not* widen our band to chase the published IV-2b number. Report the comparison with
+  this caveat. The fair bar on IV-2b is an EOG-controlled one, which no published paper reports.
+- Segment-and-recombine augmentation, the remaining recipe element, was not tested.
