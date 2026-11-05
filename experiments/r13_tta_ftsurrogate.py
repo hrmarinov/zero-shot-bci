@@ -86,11 +86,11 @@ def tta_predict(model, Xe: torch.Tensor, seed: int) -> np.ndarray:
         return np.mean([predict_proba(model, tf(Xe)) for _ in range(K)], 0)
 
 
-def fit_clean_and_tta(model, Xt, yt, Xe, seed: int, aug: str | None) -> tuple[np.ndarray, np.ndarray]:
+def fit_clean_and_tta(make_model, Xt, yt, Xe, seed: int, aug: str | None) -> tuple[np.ndarray, np.ndarray]:
     wait_until_healthy()
     set_deterministic(seed)
     augment = None if aug is None else make_augmentation(aug, seed)
-    model = train_model(model, Xt, yt, CFG, seed=seed, augment=augment)
+    model = train_model(make_model(), Xt, yt, CFG, seed=seed, augment=augment)  # built AFTER seeding, as in R8/R9
     clean = predict_proba(model, Xe)
     tta = tta_predict(model, Xe, seed)
     del model
@@ -153,7 +153,7 @@ def run_iv2a(s: int, rows: list, device) -> None:
     yc_t = torch.as_tensor(encode_labels(w.y_calib, IV2A_CLASSES), device=device)
 
     def train(k, aug):  # R8's fit_predict
-        return fit_clean_and_tta(ShallowConvNet(22, 4, N_TIMES_WIDE).to(device), Xc_t, yc_t, Xe_t, k, aug)
+        return fit_clean_and_tta(lambda: ShallowConvNet(22, 4, N_TIMES_WIDE).to(device), Xc_t, yc_t, Xe_t, k, aug)
 
     paths = {"base": lambda k: CACHE / "r3_preds" / f"s{s}_cnn_ra_seed{k}.npy",
              "fts": lambda k: CACHE / "r8_preds" / f"s{s}_ftsurrogate_seed{k}.npy"}
@@ -177,7 +177,7 @@ def run_iv2b(s: int, rows: list, device) -> None:
     Xe = torch.as_tensor(X[ev].astype(np.float32), device=device)
 
     def train(k, aug):  # R9's fit_predict
-        return fit_clean_and_tta(ShallowConvNet(3, 2, N_TIMES).to(device), Xt, Yt, Xe, k, aug)
+        return fit_clean_and_tta(lambda: ShallowConvNet(3, 2, N_TIMES).to(device), Xt, Yt, Xe, k, aug)
 
     paths = {"base": lambda k: CACHE / "r7_preds" / f"s{s}_teacher_seed{k}.npy",
              "fts": lambda k: CACHE / "r9_preds" / f"s{s}_ftsurrogate_seed{k}.npy"}
