@@ -1201,6 +1201,15 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > training regulariser, not by making models phase-invariant. Two rounds in a row (R12, R13) have now
 > brought no gain, so the loop is closed. **Final best = R11.** Next step: confirm R11 on an untouched
 > two-session dataset (none is available locally yet), not more screens on these 18 subjects.
+>
+> **R14 (2026-11-05): council review + EOG validity gate — PASS, with a measurable ocular share.**
+> Council: `reports/r14_council_and_ideation.md`. After regressing the EOG channels out of the EEG
+> (coefficients fitted on T) and retraining every member, R11 drops by only +0.75 pp pooled (p = 0.017;
+> IV-2a +0.46, IV-2b +1.04), which is under the pre-registered 1.0 pp line, so **R11 stays the reference**.
+> The FTSurrogate diversity gain survives cleaning (B_clean − r10_clean +2.26 pp, 13/18 up). But the 3 EOG
+> channels alone decode far above chance (EOG-only CNN 52.3% / 69.7% vs chance 25 / 50), and the CNN's
+> errors agree with the EOG-only CNN more than chance (+3.4 pp). Read the headline as ≈ 82.0 / 79.8
+> EOG-clean. Any lockbox confirmation should report the EOG-clean pipeline alongside the raw one.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

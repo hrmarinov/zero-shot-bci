@@ -586,3 +586,64 @@ brought no improvement, so the ideation → screen loop stops.
   ShallowConvNet seeds) / 3. It reaches **82.45% on IV-2a and 80.86% on IV-2b**.
 - **Before more screening:** the next informative step is a confirmation on an untouched
   two-session dataset, not another screen on these 18 subjects.
+
+## R14 — EOG validity gate on the R11 best: PASS, with a measurable ocular share (`experiments/r14_eog_gate.py`)
+
+The council review (`reports/r14_council_and_ideation.md`) flagged that no member of the R11 best has an
+EOG control. Its first recommendation was to measure how much of B depends on ocular signal. The gate was
+pre-registered and committed (`e986e2a`) before the run.
+- **Fix during the run:** the self-check that the regression residual is uncorrelated with EOG used a
+  1e-6 tolerance. Round-off reached 1.2e-6 on IV-2a subject 4. The tolerance was loosened to 1e-4 in
+  `cbe9228`; the protocol was unchanged and no result had been computed.
+
+**Design.**
+- Per subject and per band, the EEG is regressed on the 3 EOG channels by least squares. The coefficients
+  are fitted on the training session only (IV-2b: recordings 0–2train) and the cleaned EEG is
+  EEG − EOG·B.
+- Every member is then retrained on the cleaned EEG with its unchanged code path and seeds:
+  3 base CNNs, 2 FTSurrogate CNNs and TS+LR.
+- Members built on the 3 EOG channels only: TS+LR at 8–30 Hz, TS+LR at 4–38 Hz on the CNN's window,
+  and a ShallowConvNet.
+- **Gate:** B − B_clean ≥ +1.0 pp pooled with one-sided p < 0.05 counts as an ocular-material share.
+  The regression also removes any neural signal that reaches the EOG electrodes, so the drop is an
+  *upper bound* on the ocular share.
+
+**Validity (all passed):**
+- V1: the raw epochs cut here equal the harness arrays exactly (max |diff| = 0) for both bands, with the
+  same labels and recordings.
+- V2: TS+LR on the raw EEG reproduces R11 per subject, and the regression residual is orthogonal to EOG.
+- V3: B reproduces R11 exactly.
+- V4: a rerun with the 6 IV-2b subject-1 models deleted and retrained gives byte-identical model files
+  and a byte-identical CSV.
+
+| Dataset | B | B_clean | r10 | r10_clean | CNN3 → clean | FTS2 → clean | TS+LR → clean | EOG-only: TS+LR 8–30 / TS+LR 4–38 / CNN |
+|---|---|---|---|---|---|---|---|---|
+| IV-2a | 82.45 | 81.98 | 78.97 | 78.90 | 78.09 → 77.66 | 79.98 → 81.06 | 69.25 → 68.87 | 34.65 / 41.13 / **52.31** (chance 25) |
+| IV-2b | 80.86 | 79.81 | 80.05 | 78.38 | 78.81 → 77.79 | 79.51 → 78.69 | 77.37 → 77.42 | 60.84 / 66.76 / **69.65** (chance 50) |
+
+| Contrast | Pooled | Up / down | p | IV-2a | IV-2b | Verdict |
+|---|---|---|---|---|---|---|
+| **B − B_clean** (primary) | **+0.75 pp** | 13 / 3 | 0.017 | +0.46 | +1.04 | **PASS** (below the 1.0 pp line) |
+| B_clean − r10_clean | +2.26 pp | 13 / 3 | 0.001 | +3.09 | +1.44 | FTSurrogate diversity survives cleaning |
+| EOG-only CNN − chance | +23.5 pp | 18 / 0 | < 0.001 | +27.3 | +19.7 | EOG carries strong class information |
+| excess CNN/EOG error agreement | +3.4 pp | 13 / 5 | 0.020 | +3.4 | +3.5 | CNN errors partly share the ocular drive |
+| CNN3 raw − clean | +0.72 pp | 10 / 5 | 0.055 | +0.42 | +1.02 | |
+| TS+LR raw − clean | +0.17 pp | 10 / 8 | 0.35 | +0.39 | −0.05 | TS+LR is essentially EOG-free |
+| FTS2 raw − clean | −0.13 pp | 10 / 7 | 0.60 | −1.08 | +0.82 | |
+
+The regression removes 33% of the EEG variance on IV-2a E (22 channels, frontal ones included) and 7.4% on
+IV-2b (C3/Cz/C4 only).
+
+**Reading:**
+- The R11 headline is mostly neural. Removing EOG costs at most about 0.75 pp, and the pre-registered
+  decision keeps B as the reference.
+- The ocular share is still real and significant (p = 0.017). It is concentrated in the plain CNNs and in
+  IV-2b (+1.04 pp), which fits IV-2b's feedback sessions where gaze follows the class-dependent smiley.
+- On their own, the 3 EOG channels decode almost as well as early-2000s EEG pipelines (CNN 52% 4-class,
+  70% 2-class). This is a dataset property any IV-2a/2b result inherits.
+- TS+LR (8–30 Hz, 0.5–2.5 s) is unaffected by EOG removal. The CNN's wider band and window are where
+  ocular leakage enters.
+- The diversity result from R11 holds on clean data: the FTSurrogate member adds +2.26 pp over the clean
+  R10 stack, on both datasets.
+- **EOG-clean reference numbers:** 81.98% on IV-2a and 79.81% on IV-2b. Any lockbox confirmation should
+  report the clean pipeline next to the raw one.
