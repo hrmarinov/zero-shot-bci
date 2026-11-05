@@ -731,3 +731,42 @@ down.
 - **Decision:** do *not* widen our band to chase the published IV-2b number. Report the comparison with
   this caveat. The fair bar on IV-2b is an EOG-controlled one, which no published paper reports.
 - Segment-and-recombine augmentation, the remaining recipe element, was not tested.
+
+## L1 — LOCKBOX: R11 replicates on the untouched BNCI2015_001 (`experiments/l1_lockbox_bnci2015_001.py`)
+
+**Protocol.** Pre-registered and committed (`c6762b9`) *before* the dataset was downloaded. A dry run on
+MOABB's FakeDataset exercised the code first. The dataset was opened once, with no reruns.
+- **Dataset:** BNCI2015_001, 12 subjects, 13 channels, right hand vs feet.
+- **Split:** train on session A, test on session B, with 200 test trials per subject.
+- **Pipeline:** `src/pipeline.py` unchanged; input resampled to 250 Hz.
+- **No EOG control:** the dataset has no EOG channels.
+
+| Arm | Accuracy |
+|---|---|
+| CSP+LDA+RA | 76.96 |
+| TS+LR | 80.88 |
+| Single ShallowConvNet (mean of 5 seeds) | 84.19 |
+| R10 (CNN3 + TS+LR) | 86.00 |
+| Size-matched control (CNN3 + TS+LR + 2 more base seeds) | 86.58 |
+| LITE (1 FTSurrogate CNN + TS+LR) | 85.42 |
+| **R11 (CNN3 + TS+LR + FTS2)** | **87.88** |
+
+| Hypothesis | Mean [95% CI] | Up / down | p (Holm) | Verdict |
+|---|---|---|---|---|
+| **H1** R11 − single CNN | **+3.68 pp** [+1.89, +5.69] | 10 / 2 | 0.0020 | **SUPPORTED: R11 replicates** |
+| H2 R11 − size-matched control | +1.29 pp [−0.29, +3.00] | 7 / 4 | 0.085 | not supported |
+| **H3** R11 − CSP+LDA+RA | **+10.92 pp** [+6.58, +15.88] | **12 / 0** | 0.0007 | **SUPPORTED** |
+| R10 − single CNN (secondary) | +1.81 pp | 10 / 1 | 0.001 | |
+| R11 − R10 (secondary) | +1.88 pp | 9 / 3 | 0.027 | |
+| LITE − R11, non-inferiority at −1 pp (secondary) | −2.46 pp, lower bound −3.58 | 0 / 10 | | **not non-inferior** |
+
+**Reading:**
+- **The pipeline is confirmed on unseen data.** The gain over a single CNN (+3.68 pp) almost exactly
+  matches the council's shrunk prediction of about +3.5 pp. The gain over CSP+LDA+RA is large and holds
+  for every one of the 12 subjects.
+- **The FTSurrogate-diversity mechanism is only partly confirmed.** R11 still beats R10 (+1.88 pp,
+  p = 0.027). Against the size-matched control the effect has the predicted size (+1.29 pp; the
+  council's shrunk estimate was about +1.2) but does not reach significance with 12 subjects.
+- **LITE does not replace R11.** It loses 2.5 pp, with 10 of 12 subjects down. The extra fits are worth
+  their cost.
+- **R11 stays the reference pipeline,** now confirmed outside the development data.

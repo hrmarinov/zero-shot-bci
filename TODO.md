@@ -1220,6 +1220,10 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > to the published 0.5-100 Hz data path gives +4.4 pp on IV-2b (82.9%), but regressing out EOG removes
 > it all (recipe 82.3 -> 77.8%, 8/9 down, p = 0.004). Published IV-2b SOTA (85-90%) likely includes
 > ~4-5 pp of ocular decoding; we keep 4-38 Hz. The real remaining gap is IV-2a: 2.3 pp to TCFormer.
+>
+> **L1 lockbox (2026-11-05): R11 REPLICATES on untouched BNCI2015_001.** R11 87.9% vs single CNN
+> 84.2% (+3.7 pp, 10/12 up, Holm p = 0.002) and CSP+LDA+RA 77.0% (+10.9 pp, 12/12). The diversity
+> contrast vs the size-matched control is +1.3 pp (n.s.); LITE is not non-inferior (-2.5 pp).
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

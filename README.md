@@ -65,8 +65,9 @@ sessions. After shrinking for that search, the council review
 ([`reports/r14_council_and_ideation.md`](reports/r14_council_and_ideation.md)) estimates the
 true gain at about +3.5 pp over a single ShallowConvNet and about +1.2 pp over R10. Its most robust
 fact is narrower: the mixed ensemble beats a CNN-only ensemble with the same number of members
-by +2.3 pp, with 16 subjects up and 0 down, on both datasets. No untouched dataset has confirmed
-R11 yet.
+by +2.3 pp, with 16 subjects up and 0 down, on both datasets. **R11 has since been confirmed on an
+untouched dataset** (BNCI2015_001, see Status): +3.7 pp over a single CNN, as the shrunk estimate
+predicted.
 
 Riemannian alignment (per-session recentering — whitening each session's own trials to
 identity) is the one adaptation method that reliably helps, and it needs **no other
@@ -284,11 +285,18 @@ applied before trusting any new number:
 - The idea loop stopped after two rounds without gain (R12, R13). More screening on these 18
   evaluation sessions would mostly fit noise.
 
+**Confirmed on unseen data (L1 lockbox, BNCI2015_001).** The test was pre-registered before
+download, and the data were opened once (12 subjects, right hand vs feet):
+- R11 reaches 87.9%, against 84.2% for a single ShallowConvNet (+3.7 pp, 10/12 up, Holm p = 0.002).
+- It beats CSP+LDA+RA (77.0%) by +10.9 pp, with all 12 subjects up.
+- Its edge over a same-size CNN ensemble (+1.3 pp) has the predicted size but is not significant
+  with 12 subjects.
+- The 1-fit LITE variant is not a substitute (−2.5 pp).
+
 **Next:**
-1. A one-shot confirmation on an untouched two-session dataset (BNCI2015_001), with R11, the
-   1-fit LITE variant (FTSurrogate CNN + TS+LR) and a same-size CNN ensemble pre-registered
-   before download.
-2. Then the ensemble's calibration-burden curve, which ties it back to this project's goal.
+1. The ensemble's calibration-burden curve, which ties it back to this project's goal.
+2. A cheap cross-paradigm check (P300/SSVEP) of whether per-session alignment + TS+LR transfers
+   between sessions there too.
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on
