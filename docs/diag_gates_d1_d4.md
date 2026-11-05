@@ -647,3 +647,33 @@ IV-2b (C3/Cz/C4 only).
   R10 stack, on both datasets.
 - **EOG-clean reference numbers:** 81.98% on IV-2a and 79.81% on IV-2b. Any lockbox confirmation should
   report the clean pipeline next to the raw one.
+
+## Consolidation: the R11 pipeline as one entry point (`src/pipeline.py`)
+
+This was step 2 of the council's sequence (`reports/r14_council_and_ideation.md` §7). No new science.
+
+- **What it is.** `src.pipeline.fit_predict(data, n_classes, cfg)` fits every member on the training
+  trials and returns test probabilities per family plus the ensemble.
+  - Families are the plain CNN, TS+LR and the FTSurrogate CNN. Seeds are averaged within a family, and
+    families are averaged with equal weight.
+  - `load_subject_data("IV-2a" | "IV-2b", s)` builds the input, with the trial-order check.
+- **Configurations.** `PipelineConfig(n_cnn, n_fts, use_tslr)` sets the member counts. Three are named:
+  - `R11`: 3 base CNN seeds + TS+LR + 2 FTSurrogate seeds, 5 GPU fits;
+  - `R10`: 3 base CNN seeds + TS+LR;
+  - `LITE`: 1 FTSurrogate CNN + TS+LR, 1 GPU fit.
+- **Alignment.** One `align_by_group` replaces the three per-script variants (per session, per
+  recording, and the TS+LR one), and it self-checks that each aligned group has an identity mean.
+- **Reproduction check** (`experiments/check_pipeline_reproduces_r11.py`; 90 GPU fits, passed):
+  - every CNN member equals its cached R3/R7/R8/R9 prediction (identical argmax, max |Δp| < 1e-5);
+  - per subject, TS+LR, R10 and R11 give exactly the accuracies recorded in
+    `results/r11_round3_diverse_members.csv`.
+
+| Config | GPU fits / subject | IV-2a | IV-2b |
+|---|---|---|---|
+| R11 | 5 | 82.45 | 80.86 |
+| R10 | 3 | 78.97 | 80.05 |
+| LITE (FTS seed 0 + TS+LR) | 1 | 80.86 | 81.40 |
+
+LITE is descriptive only: it was not screened, and seed 0 is a favourable draw. The seed-averaged
+council ablation gives 80.79 / 80.84. It needs a pre-registered non-inferiority test, ideally on the
+lockbox dataset, before it can replace R11.

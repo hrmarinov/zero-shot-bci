@@ -1210,6 +1210,11 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > channels alone decode far above chance (EOG-only CNN 52.3% / 69.7% vs chance 25 / 50), and the CNN's
 > errors agree with the EOG-only CNN more than chance (+3.4 pp). Read the headline as ≈ 82.0 / 79.8
 > EOG-clean. Any lockbox confirmation should report the EOG-clean pipeline alongside the raw one.
+>
+> **Consolidated (2026-11-05):** the R11 pipeline is now one entry point, `src/pipeline.py`
+> (`fit_predict` with `R11` / `R10` / `LITE` configs). `experiments/check_pipeline_reproduces_r11.py`
+> retrained all 90 members through it and reproduced R11 exactly. Next: pre-register the lockbox
+> confirmation (BNCI2015_001) of R11, LITE and a size-matched CNN ensemble, raw and EOG-clean.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
