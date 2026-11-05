@@ -538,3 +538,51 @@ IV-2b**, against the R3 single model at 75.21% and 78.58%.
 - Caveat: the IV-2a part of R11's gain is inflated by subject 5, and FTSurrogate was itself
   selected on IV-2a's evaluation session.
 - No untouched dataset confirms this pipeline yet.
+
+## R13 — round 5, a new axis: test-time FTSurrogate; NO IMPROVEMENT, the loop stops (`experiments/r13_tta_ftsurrogate.py`)
+
+Ideation: `reports/r13_ideation_test_time_ftsurrogate.md`. Pre-registered and committed (`077bd57`)
+before the run.
+- **Bug fix during the run:** the first launch stopped at V2 on subject 1. The model was built
+  before seeding, which R8/R9 do not do. It was fixed in `211ea66` with the protocol unchanged and
+  no result computed.
+- **Retraining:** all 90 CNN members were retrained (base seeds 0–2 and FTSurrogate seeds 0–1, on
+  both datasets).
+- **TTA:** each member's test prediction is the mean of the clean softmax and K = 8 FTSurrogate
+  copies (probability 1, phase noise 0.9).
+- **Arms:** `tta_fts` applies TTA to the FTSurrogate members only; `tta_all` applies it to every CNN.
+  Both are compared against B, the R11 best.
+
+**Validity (all passed):**
+- V1: trial order checked.
+- V2: every one of the 90 retrained models reproduces its cached prediction (identical argmax,
+  max |Δp| < 1e-5).
+- V3: B reproduces R11 exactly.
+- V4: rerunning with warm caches gives a byte-identical CSV. The 5 IV-2b subject-1 models were
+  deleted and retrained, and the recomputed files are byte-identical.
+
+| Dataset | B | tta_fts | tta_all | single base: clean → TTA | single FTS: clean → TTA |
+|---|---|---|---|---|---|
+| IV-2a | 82.45 | 81.91 | 79.86 | 75.21 → 71.31 | 79.51 → 77.30 |
+| IV-2b | 80.86 | 81.53 | 81.26 | 78.58 → 79.29 | 79.49 → 78.77 |
+
+| Contrast | Pooled | Up / down | p (Holm) | IV-2a | IV-2b | Verdict |
+|---|---|---|---|---|---|---|
+| tta_fts − B | +0.07 pp | 10 / 7 | 0.43 (0.86) | −0.54 | +0.67 | killed |
+| tta_all − B | −1.09 pp | 5 / 10 | 0.95 (0.95) | −2.58 | +0.41 | killed |
+| single FTS, TTA − clean | −1.47 pp | 4 / 14 | — | −2.22 | −0.72 | TTA hurts |
+
+**Reading:**
+- The hypothesis was that FTSurrogate-trained models are phase-invariant, so averaging over phase
+  surrogates would only remove noise. That is false: their accuracy drops on surrogate copies.
+- So FTSurrogate works during *training* as a regulariser, not because it teaches invariance.
+  Its member diversity (R11) comes from a different solution, not from phase invariance.
+- On the base CNN, TTA hurts IV-2a (22 channels, −3.9 pp) and helps IV-2b slightly (3 channels,
+  +0.7 pp). The sign flip between datasets is one more example of why the joint rule is needed.
+
+**Loop stopping decision (final).** Two consecutive rounds (R12 and R13), on two different axes,
+brought no improvement, so the ideation → screen loop stops.
+- **The best pipeline stays R11:** (3 base ShallowConvNet seeds + TS+LR + 2 FTSurrogate
+  ShallowConvNet seeds) / 3. It reaches **82.45% on IV-2a and 80.86% on IV-2b**.
+- **Before more screening:** the next informative step is a confirmation on an untouched
+  two-session dataset, not another screen on these 18 subjects.

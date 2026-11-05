@@ -1196,6 +1196,11 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > (Holm 0.19). Late-window TS+LR gained +0.24 pp. Adding more members has saturated, so the R11 pipeline
 > stays the best. To restart the loop, use a new axis, e.g. test-time FTSurrogate, which needs the CNN
 > weights saved. Pre-register it against the R11 best.
+> **R13 (2026-11-05): test-time FTSurrogate gives NO IMPROVEMENT** (tta_fts +0.07 pp, Holm 0.86; tta_all
+> −1.09 pp). TTA even lowers the FTSurrogate models' own accuracy (−1.47 pp), so FTSurrogate helps as a
+> training regulariser, not by making models phase-invariant. Two rounds in a row (R12, R13) have now
+> brought no gain, so the loop is closed. **Final best = R11.** Next step: confirm R11 on an untouched
+> two-session dataset (none is available locally yet), not more screens on these 18 subjects.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
