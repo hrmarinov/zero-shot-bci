@@ -2,3 +2,11 @@
 
 -r requirements.txt
 pytest==9.1.1
+
+# braindecode: reference models (EEGNet, ATCNet, EEGConformer, EEGTCNet, Deep4Net),
+# augmentations and the equivalence test in tests/test_convnet.py. braindecode needs
+# torchaudio built for the installed torch; with torch 2.6.0+cu124 that is 2.6.0, which
+# must come from the PyTorch index (plain PyPI's newest torchaudio fails with
+# "WinError 127" on import). Install it first, without deps so pip cannot move torch:
+#   pip install --no-deps torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+braindecode==1.7.0

@@ -66,6 +66,51 @@ well-defined clinical category.
 |---|---|---|---|---|
 | 1 | CSP+LDA, no adaptation | 4-class, IV-2a, N=1 subject only | 62.2% avg (34.0-80.9% range) | [results/phase1_baseline_iv2a.csv](../results/phase1_baseline_iv2a.csv) |
 | 2 | + Riemannian alignment (per-session recentering) | 4-class, IV-2a, N=1 subject only | 66.9% avg, +4.7pp, 3/9 subjects significant (McNemar) | [results/phase2_riemannian_alignment_iv2a.csv](../results/phase2_riemannian_alignment_iv2a.csv) |
+| R11 | CNN3 + TS+LR + FTSurrogate CNN2 ensemble, per-session RA | IV-2a 4-class T→E / IV-2b 2-class 0–2train→3–4test | 82.45% / 80.86% | [docs/diag_gates_d1_d4.md](diag_gates_d1_d4.md) |
+
+---
+
+## 0. The accuracy to beat (searched 2026-11-05): subject-specific, train on session 1 → test on session 2
+
+This is the official competition split, the same one we use. Each published number below was checked
+for **how the reported epoch or checkpoint was chosen**: a number chosen by looking at the test session
+is optimistic.
+
+| Method | IV-2a | IV-2b | How the number was chosen | Source |
+|---|---|---|---|---|
+| **TCFormer** (Altaheri et al., *Sci. Rep.* 2025), with augmentation | **84.79** | **87.71** | **Leak-free** according to its README: last-epoch checkpoint, mean of 5 runs, no early stopping or validation selection (training script not read; GitHub timed out) | [paper](https://www.nature.com/articles/s41598-025-16219-7), [code](https://github.com/Altaheri/TCFormer) |
+| TCFormer, without augmentation | 83.06 | 87.11 | same | same |
+| CTNet (Zhao et al., *Sci. Rep.* 2024) | 82.52 | 88.49 | **Leak-free** (code read): best epoch chosen on a 30% validation split carved from the training session, and the test set scored once | [paper](https://www.nature.com/articles/s41598-024-71118-7), [code](https://github.com/snailpt/CTNet) |
+| ShallowConvNet / EEGNet, as reimplemented in CTNet's table | — | 85.13 / 87.71 | same pipeline as CTNet | [CTNet README](https://github.com/snailpt/CTNet) |
+| ATCNet (Altaheri et al. 2022) | 85.38 (82.96 in other reimplementations) | — | **Unverified**: the code could not be retrieved | [ATCNet-CIAM](https://arxiv.org/pdf/2607.23522) |
+| EEG-Conformer (Song et al. 2022) | 78.66 | 84.63 | **Test-selected** (code read): `bestAcc` is the maximum test accuracy over 2000 epochs, with no validation set | [code](https://github.com/eeyhsong/EEG-Conformer) |
+| CIACNet (2025), SATrans-Net (2025) | 85.15 / — | 90.05 / 89.76 | Not checked | [MSCFormer etc.](https://www.nature.com/articles/s41598-025-96611-5), [SATrans-Net](https://www.nature.com/articles/s41598-025-30806-8) |
+| Multi-scale filter-bank tangent-space mapping (non-deep) | 77.33 | — | Riemannian, session-to-session | [Front. Hum. Neurosci. 2021](https://doaj.org/article/032823c13a444476b17a77e6aa115f2c) |
+| FBCSP (competition winners, 2008) | ≈67.8 (κ 0.57) | ≈80 (κ 0.60) | Kappa at the best time point | [BCI IV results](https://www.bbci.de/competition/iv/results/) |
+| **Ours, R11** | **82.45** | **80.86** | Leak-free (fixed 300 epochs). Alignment uses the test session's unlabelled trials (transductive). Selected over many screens on these test sessions. | this repo |
+
+**The bar to beat: TCFormer, 84.79% on IV-2a and 87.71% on IV-2b.** It is the strongest leak-free
+result we found. R11 is **2.3 pp below on IV-2a** and **6.9 pp below on IV-2b**. CTNet (82.52 / 88.49)
+is on par with R11 on IV-2a and far ahead on IV-2b.
+
+**The IV-2b gap is eye movement (D6, `docs/diag_gates_d1_d4.md`).** In CTNet's leak-free comparison, a
+plain ShallowConvNet scores 85.13% on IV-2b; ours scores 78.58%. We switched our single ShallowConvNet
+to the published data path:
+- the 0.5–100 Hz band reaches 82.9% (+4.4 pp), and the full recipe reaches 82.3%;
+- the alignment change and the longer training do not help;
+- regressing the 3 EOG channels out of the broadband EEG brings the recipe back to 77.8% (−4.6 pp, 8 of
+  9 subjects down, p = 0.004).
+
+IV-2b's test recordings are feedback sessions in which gaze follows the class-dependent smiley. So the
+published IV-2b numbers, which use broadband input, very likely include about 4–5 pp of eye-movement
+decoding. The honest IV-2b bar is lower than 87.7%, and no paper reports an EOG-controlled IV-2b number.
+On IV-2a, the 2.3 pp gap to TCFormer remains the real target.
+
+**Comparability caveats.** These are single papers, each tuned by its authors on these same test
+sessions over years of reuse. None is an independent replication. Our numbers carry the same kind of
+selection inflation (see `reports/r14_council_and_ideation.md`). Our per-session alignment is
+transductive: it sees the test session's unlabelled trials before predicting. Published models
+predict trial by trial.
 
 ---
 

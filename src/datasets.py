@@ -145,6 +145,44 @@ def load_iv2a_subject(subject: int) -> SubjectSessions:
     )
 
 
+@dataclass(frozen=True)
+class SubjectSessionsWithRuns:
+    """SubjectSessions plus the recording-run index of every trial (0-5 in IV-2a)."""
+
+    subject: int
+    X_calib: np.ndarray
+    y_calib: np.ndarray
+    runs_calib: np.ndarray
+    X_eval: np.ndarray
+    y_eval: np.ndarray
+    runs_eval: np.ndarray
+
+
+def load_iv2a_subject_window(
+    subject: int, fmin: float, fmax: float, tmin: float, tmax: float
+) -> SubjectSessionsWithRuns:
+    """IV-2a with a caller-chosen band and post-cue window, keeping run labels.
+
+    Same MOABB path as load_iv2a_subject (band-pass on the continuous recording per
+    session/run, then epoching), so load_iv2a_subject_window(s, FMIN, FMAX, TMIN, TMAX)
+    returns exactly load_iv2a_subject(s)'s arrays (asserted in tests). ``tmin`` must be
+    >= 0 so no pre-cue samples enter a classifier input.
+    """
+    if tmin < 0:
+        raise ValueError("tmin < 0 would put pre-cue samples into the classifier input")
+    dataset = BNCI2014_001()
+    paradigm = MotorImagery(n_classes=4, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax)
+    X, y, metadata = paradigm.get_data(dataset=dataset, subjects=[subject])
+    calib = (metadata["session"] == CALIB_SESSION).to_numpy()
+    evl = (metadata["session"] == EVAL_SESSION).to_numpy()
+    runs = metadata["run"].astype(int).to_numpy()
+    return SubjectSessionsWithRuns(
+        subject=subject,
+        X_calib=X[calib], y_calib=y[calib], runs_calib=runs[calib],
+        X_eval=X[evl], y_eval=y[evl], runs_eval=runs[evl],
+    )
+
+
 WAVELET_CALIB_FMIN, WAVELET_CALIB_FMAX = 1.0, 40.0
 WAVELET_CALIB_TMIN, WAVELET_CALIB_TMAX = -1.0, 4.0
 
@@ -353,3 +391,29 @@ def load_iv2b_subject(subject: int) -> SubjectSessions:
         X_eval=X[eval_mask.to_numpy()],
         y_eval=y[eval_mask.to_numpy()],
     )
+
+
+@dataclass(frozen=True)
+class SubjectRecordings:
+    """All trials of one subject with the MOABB session (recording) label of every trial."""
+
+    subject: int
+    X: np.ndarray
+    y: np.ndarray
+    session: np.ndarray
+
+
+def load_iv2b_subject_window(
+    subject: int, fmin: float, fmax: float, tmin: float, tmax: float
+) -> SubjectRecordings:
+    """IV-2b, caller-chosen band and post-cue window, every trial tagged with its recording.
+
+    Same MOABB path as load_iv2b_subject. Recordings are kept apart because they are not
+    protocol-equivalent (2 screening + 3 feedback, docs/datasets.md §3), so per-recording
+    alignment needs the label. ``tmin`` must be >= 0 (no pre-cue samples).
+    """
+    if tmin < 0:
+        raise ValueError("tmin < 0 would put pre-cue samples into the classifier input")
+    paradigm = MotorImagery(n_classes=2, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax)
+    X, y, metadata = paradigm.get_data(dataset=BNCI2014_004(), subjects=[subject])
+    return SubjectRecordings(subject=subject, X=X, y=y, session=metadata["session"].to_numpy())

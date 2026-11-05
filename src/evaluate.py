@@ -71,7 +71,11 @@ def accuracy_summary(y_true: np.ndarray, y_pred: np.ndarray) -> tuple[float, int
     which can't be tightened by repeated resampling the way within-session CV
     can.
     """
-    n_correct = int(np.sum(np.asarray(y_pred) == np.asarray(y_true)))
+    y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
+    if (y_true.dtype.kind in "USO") != (y_pred.dtype.kind in "USO"):
+        raise TypeError(f"label type mismatch: y_true {y_true.dtype} vs y_pred {y_pred.dtype} - "
+                        "comparing text to integer labels would silently score 0%")
+    n_correct = int(np.sum(y_pred == y_true))
     n_total = len(y_true)
     return n_correct / n_total, n_correct, n_total
 
@@ -101,3 +105,38 @@ def mcnemar_test(y_true: np.ndarray, y_pred_a: np.ndarray, y_pred_b: np.ndarray)
     if n_discordant == 0:
         return 1.0
     return binomtest(min(a_only, b_only), n_discordant, p=0.5).pvalue
+
+
+def sign_flip_permutation_test(diffs: np.ndarray, alternative: str = "greater") -> float:
+    """Exact paired sign-flip permutation test on the mean of per-unit differences.
+
+    Enumerates all 2**n sign assignments (n <= 20). Under H0 each paired difference is
+    symmetric about zero. ``alternative``: "greater" (one-sided, mean > 0) or "two-sided".
+    The observed assignment is included, so p >= 2**-n.
+    """
+    d = np.asarray(diffs, dtype=float)
+    n = d.size
+    if n == 0 or n > 20:
+        raise ValueError(f"need 1..20 paired differences, got {n}")
+    signs = 1 - 2 * ((np.arange(2**n)[:, None] >> np.arange(n)) & 1)
+    null = (signs * d).mean(axis=1)
+    obs = d.mean()
+    tol = 1e-12
+    if alternative == "greater":
+        return float(np.mean(null >= obs - tol))
+    if alternative == "two-sided":
+        return float(np.mean(np.abs(null) >= abs(obs) - tol))
+    raise ValueError(f"unknown alternative {alternative!r}")
+
+
+def holm_adjust(pvalues: list[float]) -> list[float]:
+    """Holm-Bonferroni step-down adjusted p-values (same order as the input)."""
+    p = np.asarray(pvalues, dtype=float)
+    order = np.argsort(p)
+    m = len(p)
+    adjusted = np.empty(m)
+    running = 0.0
+    for rank, idx in enumerate(order):
+        running = max(running, min(1.0, (m - rank) * p[idx]))
+        adjusted[idx] = running
+    return adjusted.tolist()

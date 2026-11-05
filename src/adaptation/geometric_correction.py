@@ -88,7 +88,7 @@ from pyriemann.geometry.mean import mean_riemann
 from pyriemann.geometry.tangentspace import tangent_space, untangent_space
 from torch import nn
 
-from src.adaptation.spd_shrinkage import _trial_tangent_vectors
+from src.adaptation.spd_shrinkage import trial_tangent_vectors
 
 DEFAULT_HIDDEN_DIM = 64
 DEFAULT_N_HIDDEN_LAYERS = 2
@@ -193,7 +193,7 @@ def _build_training_examples(
             for _ in range(draws_per_subject_per_size):
                 idx = rng.choice(n_trials, size=n, replace=False)
                 X_sub = X[idx]
-                trial_vecs = _trial_tangent_vectors(X_sub, reference, estimator=estimator, normalize_trace=normalize_trace)
+                trial_vecs = trial_tangent_vectors(X_sub, reference, estimator=estimator, normalize_trace=normalize_trace)
                 input_vec = trial_vecs.mean(axis=0)
                 input_dev = input_vec - grand_mean
                 x = np.concatenate([input_dev, _sample_size_feature(n)])
@@ -374,7 +374,7 @@ def predict_corrected_mean(
 
     Returns an SPD covariance matrix predicted from X_subject's few trials.
     """
-    trial_vecs = _trial_tangent_vectors(X_subject, model.reference_, estimator=estimator, normalize_trace=normalize_trace)
+    trial_vecs = trial_tangent_vectors(X_subject, model.reference_, estimator=estimator, normalize_trace=normalize_trace)
     raw_mean = trial_vecs.mean(axis=0)
     input_dev = raw_mean - model.grand_mean_
     x = np.concatenate([input_dev, _sample_size_feature(X_subject.shape[0])])

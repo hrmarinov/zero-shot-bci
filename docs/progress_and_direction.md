@@ -10,6 +10,14 @@ than none, because it would misdirect the next round of work.
 
 ## Executive summary (read this first)
 
+- **R3 (2026-11-04): new best, 74.7% cross-session (+7.8pp over 66.9%), pre-registered
+  and audited.** A subject-specific ShallowConvNet on per-session Riemannian-aligned input,
+  trained on the GPU. The project's principle (per-session self-normalisation) holds - RA is
+  worth +11.4pp to the convnet - but the transplant it was tested with (AdaBN / speaker-
+  adaptive per-layer BN) adds nothing after RA. The CSP "ceiling" (68.9%) was a
+  representation ceiling, and the WEAK subjects 2/5/6 reach 57-60%, so R1-B's
+  "signal-limited" verdict was CSP-specific. Full write-up: `docs/convnet_session_norm.md`.
+  Provisional until replicated on IV-2b / OpenBMI.
 - **The refined core finding of this project, now confirmed across six
   attempts:** the failure mode is never really "population data" per se -
   it's specifically requiring a computation (a correction, or a training
@@ -1128,9 +1136,22 @@ against. Both are real, both are independently re-derivable from
 
 | Method | Cross-session accuracy (9 IV-2a subjects, 4-class) | Notes |
 |---|---|---|
-| Within-session (upper bound-ish) | 65.1% | Same-session train/test, repeated CV |
+| ~~Within-session, *calibration* session (was labelled "upper bound-ish")~~ | 65.1% | **Corrected - this is the wrong session's bound and does not bound anything.** It is the *calibration* session's repeated CV, and only 3/9 subjects have cross-session accuracy below it (subject 7: 76.0% within vs 62.5% cross). See the corrected row below |
+| **Within-session, *evaluation* session - the actual ceiling** | **68.9%** | Same-session repeated CV on the session that is being tested. This is the number 66.9% has to be compared against, and it is the correct bound: 3/9 subjects already exceed their own eval-session CV, and cross-aligned vs this ceiling is statistically indistinguishable (Wilcoxon p=0.30). Measured in `experiments/char_02_ceiling.py`; see `docs/ceiling_analysis.md` |
 | **Phase 1 - non-adapted CSP+LDA** | **62.2%** | Train on calibration session, test on eval session, zero correction |
 | **Phase 2 - Riemannian alignment** | **66.9%** | Per-session recentering (whiten each session's own trials to identity) before CSP+LDA. +4.7pp over Phase 1, statistically significant for 3/9 subjects individually (McNemar), real and reproducible |
+| **R3 - ShallowConvNet on per-session RA input (+ AdaBN)** | **74.7%** | Subject-specific convnet, 0-4 s / 4-38 Hz, 5-seed mean; +7.8pp over Phase 2 (95% CI +3.3..+12.3, 8/9, sign-flip p=0.0059), pre-registered, independently audited, bit-exact rerun. AdaBN adds +0.08pp (null) - the gain is RA input + convnet. 5-seed ensemble 78.3%. Provisional until external replication. See `docs/convnet_session_norm.md` |
+
+**Headroom, established and audited:** against the correct (evaluation-session) ceiling of
+68.9%, the aligned pipeline's 66.9% leaves **+1.9pp on the mean** - and that ceiling is a
+ceiling for *this pipeline family* (CSP+LDA at 5-fold training size), not for the task. The
+evaluation session is genuinely easier than the calibration session, which the earlier table
+had silently assumed away: within-session CV rises 65.1% → 68.9% across sessions, and
+running the cross-session protocol in both directions gives 62.2% (calib→eval) vs 56.9%
+(eval→calib), +5.3pp, 7 wins/1 loss, p=0.016 - and that comparison holds the training-set
+size fixed at 288 trials, so it isolates test-session difficulty with no confound. Also
+measured: tuning CSP `n_components` by an inner CV *worsens* cross-session accuracy
+(66.1% vs 66.9%, p=0.30), so the fixed `n_components=8` is not what caps the pipeline.
 
 Riemannian alignment needs **no other subject's data at all** - it only
 uses the target session's own trials. This is the first hint of the
@@ -1312,7 +1333,7 @@ plausible shape.
 
 ## Current numbers (single source of truth - update when a phase reruns)
 
-All cross-session, 9 IV-2a subjects, 4-class, unless noted.
+All cross-session, 9 IV-2a subjects, 4-class, unless noted. For R3 onward, `docs/diag_gates_d1_d4.md` has the full log (R4–R14).
 
 | Method | Mean accuracy | Source |
 |---|---|---|
@@ -1326,7 +1347,11 @@ All cross-session, 9 IV-2a subjects, 4-class, unless noted.
 | Phase 6 (disjoint-subject episodes, broken) | ~chance | not saved - stalled at 20-subject smoke-test scale, never run to completion |
 | **Phase 6 - prototypical-network meta-learning, same-subject episodes (second-best overall)** | **49.0%** (std 16.1%) | `results/phase6_prototypical.csv` |
 | Phase 1 - CSP+LDA, non-adapted | 62.2% | `results/phase1_baseline_iv2a.csv` |
-| **Phase 2 - CSP+LDA + Riemannian alignment (best overall)** | **66.9%** | `results/phase2_riemannian_alignment_iv2a.csv` |
+| Phase 2 - CSP+LDA + Riemannian alignment (best classical; IV-2b 77.7%) | 66.9% | `results/phase2_riemannian_alignment_iv2a.csv`, `results/compare_r11_vs_csp_lda.csv` |
+| R3 - ShallowConvNet on per-session RA input (IV-2b 78.6%) | 75.2% (seed 0; 74.7% over 5 seeds) | `results/r3_convnet_session_norm_summary.csv` |
+| R10 - 3 CNN seeds + TS+LR stack (IV-2b 80.1%) | 79.0% | `results/r10_round2_stack_position.csv` |
+| **R11 - CNN3 + TS+LR + FTSurrogate CNN2, 1/3 each (best overall; IV-2b 80.9%; `src/pipeline.py`)** | **82.5%** | `results/r11_round3_diverse_members.csv` |
+| R14 - R11 with EOG regressed out (IV-2b 79.8%) | 82.0% | `results/r14_eog_gate.csv` |
 | Phase 5 - CSP-only (within that run) | 62.2% | matches Phase 1 almost exactly - good consistency check |
 | Phase 7 - tangent-LDA, no realignment (own baseline, not directly comparable to Phase 1) | 65.9% | `results/phase7_riemannian_icp.csv` |
 | Phase 7 - + recenter/rescale | 66.6% | `results/phase7_riemannian_icp.csv` |

@@ -393,10 +393,54 @@ behaviour-preserving for IV-2a, but that was luck of the design, not of the proc
 
 ### R1-A / R1-B / R1-C audit verdicts
 
-*(pending — filled in when each agent reports; each entry will list the re-run command,
-the reproduction result, and the verdict)*
+R1-A and R1-B: see their entries above.
+
+**R1-C — ceiling estimate + leakage audit (`experiments/char_02_ceiling.py`): ACCEPTED.**
+Re-run from a clean shell (2026-10-07 16:46, i.e. *after* the script's last edit at 16:16):
+exit 0, 675 s, `reproduction_ok=True` — all 7 reproduction checks bit-exact (max |diff| = 0)
+against the committed Phase 1/2 CSVs, CSV rewritten at the same timestamp. Independently
+re-checked in R3 (2026-11-04): the per-subject numbers in `docs/ceiling_analysis.md` §2 match
+`results/char_ceiling_iv2a.csv`. Caveat carried forward, and it matters for what comes next:
+the 68.9% "ceiling" bounds the CSP+LDA family on the 8–30 Hz / 0.5–2.5 s representation, not
+the task.
 
 ---
+
+## R3 — ShallowConvNet + per-session normalisation (GPU)
+
+Process: full audit → five-member council (BCI/DL, statistician, cross-disciplinary,
+red-team, compute) → pre-registration committed (834b4e1) before any eval-session score →
+synthetic gate → sweep → independent audit.
+
+| Check | Result |
+|---|---|
+| Unit tests | 60/60; two AdaBN mutants (momentum left at 0.1; train-mode BN at prediction) each caught |
+| Synthetic gate | **partial pass** — G4 (59%) and G6 (64%) below the pre-set 70% recovery, *not loosened*; mutation, no-harm, drift checks pass |
+| Permuted-label control | first single-subject value 32.6% investigated before the sweep: 5 further permutations 20.8–29.5% (mean 25.7%) → overlap of permuted with true labels, not a leak. Sweep mean 27.2% |
+| Harness identity | `csp_ra` = Phase 2 bit-exact, per subject (asserted) |
+| Reproducibility | fresh-process rerun of subject 7, 13/13 rows + all probabilities bit-identical |
+| Independent audit | **ACCEPTED WITH CAVEAT** — leakage clean, all statistics and 36 accuracies re-derived; caveat: gain is RA-input + convnet, AdaBN adds nothing (S1 +0.08pp) |
+| Health | 1 thermal pause at 83 °C (guard resumed at <75 °C), peak RSS 1.2 GB |
+
+**Verdict: ACCEPTED WITH CAVEAT** — 74.7% (+7.8pp, p=0.0059) stands; described as
+"ShallowConvNet on per-session RA input", not as an AdaBN result. Provisional pending
+external replication.
+
+## R4 — Gating diagnostics D1–D4
+
+`experiments/diag_gates_d1_d4.py`, gates fixed in its docstring before the full run; exit 0.
+Validity: Phase 2 and R3 seed-0 baselines bit-exact per subject; planted-rotation control
+VALID (drops 42–55 pp, oracle recovers within ±0.35 pp); run-wise no-op guard 8.3% changed.
+
+| Item | Finding | Resolution |
+|---|---|---|
+| pyriemann `_get_rotation_manifold` | stalls on 22-ch planted rotations (residual 0.13–0.23) → would understate D1 | replaced by `src/adaptation/rotation_oracle.py`, recovers to ~1e-6, unit-tested |
+| D3 drift reference (smoke run) | per-run distance measured to the identity, biased by OAS non-equivariance (~3.2 for every run) | reference changed to the session mean of the same estimates before the full run |
+| D2 gate design | in-sample oracle re-estimates class means on scored trials → near within-session training (MDM 77.4% in-sample vs 65.6% 2-fold) | verdict reported by the letter (OPEN) **and** cross-fitted (closed); lesson recorded in `docs/diag_gates_d1_d4.md` |
+
+Verdicts: D1 rotation CLOSED; D2 class-conditional effectively closed; D3 statistic trackers
+closed, but a real within-session accuracy decline (CSP −5.0 pp late vs early, 8/9) logged as a
+new open question; D4a self-training OPEN; D4b frequency warping CLOSED.
 
 ## Rejected / corrected so far
 

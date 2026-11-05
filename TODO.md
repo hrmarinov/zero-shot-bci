@@ -675,6 +675,11 @@ conclusions, and the cheapest to falsify.
 
 ### A23. Small conv nets with cross-session fine-tuning `[pop-data, safe]` **Tier 3**
 
+> **DONE (R3, 2026-11-04) — the project's new best: 74.7%.** Subject-specific ShallowConvNet
+> on per-session RA input, no population data at all. AdaBN/SAT (A3's BN part) adds nothing
+> after RA. See `docs/convnet_session_norm.md`; next: external replication, calibration-burden
+> curve, causal/online alignment.
+
 **The oversight.** The deep-learning conclusion in this project is **literature-only**: §11
 rules out JEPA/foundation models for MI (S-JEPA 65% vs Riemannian 84.7%; LaBraM/LUNA/CBraMod/
 Laya at 0.47–0.51 balanced accuracy under frozen linear probing), and §4 notes EEGNet
@@ -684,10 +689,10 @@ losses come from cross-subject zero-shot transfer.
 
 **Untested here:** a small conv net (EEGNet / ShallowConvNet / EEG-TCNet) trained
 *per-subject* on calibration and fine-tuned on the eval session's **unlabeled** trials
-(unsupervised) — which is A3's mechanism with a stronger backbone. Cost: L. **Practical
-blocker:** `braindecode` does not import in this environment (torchaudio/torch version
-mismatch, see `requirements.txt`), so this needs either a torchaudio fix or a ~200-line
-EEGNet implementation.
+(unsupervised) — which is A3's mechanism with a stronger backbone. Cost: L. ~~Practical
+blocker: braindecode does not import~~ — **resolved 2026-11-04**: torchaudio 2.6.0+cu124
+installed; EEGNet, ATCNet, EEGConformer, EEGTCNet and Deep4Net all build and run (see
+`requirements-dev.txt`).
 
 ---
 
@@ -1153,6 +1158,72 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 ---
 
 ## Part C — Recommended execution order (the next six experiments)
+
+> **Superseded for screening order (2026-11-04):** the cross-field research round produced a
+> ranked, library-backed quick-test catalogue with four gating diagnostics (oracle rotation,
+> oracle class means, per-run drift, pseudo-label reliability / peak shift) and a screening
+> protocol — see [`reports/Cross field BCI calibration methods.md`](reports/Cross%20field%20BCI%20calibration%20methods.md).
+> Run its diagnostics D1–D4 before any item below that they gate.
+>
+> **Gate results (2026-11-04):** D1–D5 and R5 in [`docs/diag_gates_d1_d4.md`](docs/diag_gates_d1_d4.md).
+> Closed: rotation, class-conditional, frequency warping, and drift tracking (R5: smooth
+> kernel/EMA re-centering, valid planted control, −0.7 to +0.2 pp). Open: self-training /
+> distillation / entropy TTA (D4a), augmentation, run-wise epoch selection + SWA.
+> **R6 (2026-11-04):** pseudo-label self-training passes the screen (+1.62 pp over the teacher
+> ensemble, 7/9, p = 0.047; Holm 0.070, not ADOPT); distillation and IM-TTA closed. Next:
+> confirm st frozen as-is on an external dataset.
+> **R7 (2026-11-04): NOT CONFIRMED on IV-2b** (+0.22 pp, CI [−0.72, +1.16], p = 0.30; all
+> validity checks passed). Self-training is not adopted. The adopted pipeline remains
+> ShallowConvNet + per-session RA (R3).
+> **R8 (2026-11-05): FTSurrogate augmentation PROMOTE** (+4.12 pp single model, 8/9, p = 0.012,
+> Holm 0.029; WEAK +6.1 pp; ensemble +2.39 pp). FrequencyShift, SmoothTimeMask, TimeReverse and
+> ChannelsDropout were killed. Next: a frozen confirmatory run on IV-2b before adoption.
+> **R9 (2026-11-05): FTSurrogate NOT CONFIRMED on IV-2b** (+0.70 pp, CI [−0.40, +1.81], p = 0.096).
+> **G0: FAIL** — pre-cue alpha has no trial-level link to correctness, so state conditioning (A/B) is closed.
+> Screens from round 2 onward are scored on IV-2a + IV-2b jointly (winner's curse, see docs).
+> **R10 (2026-11-05): the CNN + TS-LR probability stack PASSES on both datasets** (+1.86 pp pooled, 17/18,
+> Holm < 0.001; about +1 pp of it is diversity beyond a matched CNN ensemble). New best: 3 CNN seeds + TS+LR =
+> 79.0% (IV-2a), 80.1% (IV-2b). Position-matched training was killed.
+> **R11 (2026-11-05): FTSurrogate CNNs as a third ensemble member PASS** (+2.14 pp over R10 pooled, 15/18,
+> Holm 0.0018; IV-2a +3.47, IV-2b +0.81). Against a size-matched control (two extra base seeds), the arm
+> wins on 16/18 subjects and loses on none, so the gain is diversity. New best: (3 CNN + TS+LR + 2 FTS-CNN) / 3 =
+> 82.5% (IV-2a), 80.9% (IV-2b).
+> The 0.5–4 Hz time-course member passed by the letter but is **INVALID**. It is ocular: in R11b, the EOG
+> channels alone decode the class and add +3.3 pp. Every < 4 Hz method on IV-2a/2b now needs an EOG control.
+> Filter-bank TS+LR was killed (+0.46 pp).
+> **R12 (2026-11-05): NO IMPROVEMENT, so the idea loop stops.** Two candidate fourth members were tried and
+> both were killed. The augmentation zoo (FrequencyShift / TimeMask / TimeReverse CNNs) gained +0.40 pp
+> (Holm 0.19). Late-window TS+LR gained +0.24 pp. Adding more members has saturated, so the R11 pipeline
+> stays the best. To restart the loop, use a new axis, e.g. test-time FTSurrogate, which needs the CNN
+> weights saved. Pre-register it against the R11 best.
+> **R13 (2026-11-05): test-time FTSurrogate gives NO IMPROVEMENT** (tta_fts +0.07 pp, Holm 0.86; tta_all
+> −1.09 pp). TTA even lowers the FTSurrogate models' own accuracy (−1.47 pp), so FTSurrogate helps as a
+> training regulariser, not by making models phase-invariant. Two rounds in a row (R12, R13) have now
+> brought no gain, so the loop is closed. **Final best = R11.** Next step: confirm R11 on an untouched
+> two-session dataset (none is available locally yet), not more screens on these 18 subjects.
+>
+> **R14 (2026-11-05): council review + EOG validity gate — PASS, with a measurable ocular share.**
+> Council: `reports/r14_council_and_ideation.md`. After regressing the EOG channels out of the EEG
+> (coefficients fitted on T) and retraining every member, R11 drops by only +0.75 pp pooled (p = 0.017;
+> IV-2a +0.46, IV-2b +1.04), which is under the pre-registered 1.0 pp line, so **R11 stays the reference**.
+> The FTSurrogate diversity gain survives cleaning (B_clean − r10_clean +2.26 pp, 13/18 up). But the 3 EOG
+> channels alone decode far above chance (EOG-only CNN 52.3% / 69.7% vs chance 25 / 50), and the CNN's
+> errors agree with the EOG-only CNN more than chance (+3.4 pp). Read the headline as ≈ 82.0 / 79.8
+> EOG-clean. Any lockbox confirmation should report the EOG-clean pipeline alongside the raw one.
+>
+> **Consolidated (2026-11-05):** the R11 pipeline is now one entry point, `src/pipeline.py`
+> (`fit_predict` with `R11` / `R10` / `LITE` configs). `experiments/check_pipeline_reproduces_r11.py`
+> retrained all 90 members through it and reproduced R11 exactly. Next: pre-register the lockbox
+> confirmation (BNCI2015_001) of R11, LITE and a size-matched CNN ensemble, raw and EOG-clean.
+>
+> **D6 (2026-11-05): the IV-2b gap to published results is eye movement.** Moving our ShallowConvNet
+> to the published 0.5-100 Hz data path gives +4.4 pp on IV-2b (82.9%), but regressing out EOG removes
+> it all (recipe 82.3 -> 77.8%, 8/9 down, p = 0.004). Published IV-2b SOTA (85-90%) likely includes
+> ~4-5 pp of ocular decoding; we keep 4-38 Hz. The real remaining gap is IV-2a: 2.3 pp to TCFormer.
+>
+> **L1 lockbox (2026-11-05): R11 REPLICATES on untouched BNCI2015_001.** R11 87.9% vs single CNN
+> 84.2% (+3.7 pp, 10/12 up, Holm p = 0.002) and CSP+LDA+RA 77.0% (+10.9 pp, 12/12). The diversity
+> contrast vs the size-matched control is +1.3 pp (n.s.); LITE is not non-inferior (-2.5 pp).
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

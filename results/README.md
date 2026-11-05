@@ -77,3 +77,11 @@ Recorded rather than papered over:
   written when this repository was formalized. Re-running it reproduces the
   committed file **byte-identically** (verified), so this artifact is now
   reproducible; only its original script is gone.
+
+## R3 (2026-11-04)
+
+| File | Produced by | Notes |
+|---|---|---|
+| `stage0_convnet_session_norm.csv` | `experiments/stage0_convnet_session_norm_validation.py` | synthetic gate, 3 seeds × 4 drifts × 4 arms; partial pass (see docs/convnet_session_norm.md §3) |
+| `r3_convnet_session_norm.csv` | `experiments/r3_convnet_session_norm.py` | raw rows: 9 subjects × (3 CSP arms + 5 convnet arms × 5 seeds + permuted control) = 261 rows; per-run probabilities in gitignored `data/cache/r3_preds/` (regenerated bit-exactly by rerunning) |
+| `r3_convnet_session_norm_summary.csv` | `experiments/r3b_convnet_session_norm_analysis.py` | per-subject table + 5-seed ensembles + seed SD + McNemar p |
