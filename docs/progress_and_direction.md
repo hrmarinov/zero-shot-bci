@@ -1333,7 +1333,7 @@ plausible shape.
 
 ## Current numbers (single source of truth - update when a phase reruns)
 
-All cross-session, 9 IV-2a subjects, 4-class, unless noted.
+All cross-session, 9 IV-2a subjects, 4-class, unless noted. For R3 onward, `docs/diag_gates_d1_d4.md` has the full log (R4–R14).
 
 | Method | Mean accuracy | Source |
 |---|---|---|
@@ -1347,7 +1347,11 @@ All cross-session, 9 IV-2a subjects, 4-class, unless noted.
 | Phase 6 (disjoint-subject episodes, broken) | ~chance | not saved - stalled at 20-subject smoke-test scale, never run to completion |
 | **Phase 6 - prototypical-network meta-learning, same-subject episodes (second-best overall)** | **49.0%** (std 16.1%) | `results/phase6_prototypical.csv` |
 | Phase 1 - CSP+LDA, non-adapted | 62.2% | `results/phase1_baseline_iv2a.csv` |
-| **Phase 2 - CSP+LDA + Riemannian alignment (best overall)** | **66.9%** | `results/phase2_riemannian_alignment_iv2a.csv` |
+| Phase 2 - CSP+LDA + Riemannian alignment (best classical; IV-2b 77.7%) | 66.9% | `results/phase2_riemannian_alignment_iv2a.csv`, `results/compare_r11_vs_csp_lda.csv` |
+| R3 - ShallowConvNet on per-session RA input (IV-2b 78.6%) | 75.2% (seed 0; 74.7% over 5 seeds) | `results/r3_convnet_session_norm_summary.csv` |
+| R10 - 3 CNN seeds + TS+LR stack (IV-2b 80.1%) | 79.0% | `results/r10_round2_stack_position.csv` |
+| **R11 - CNN3 + TS+LR + FTSurrogate CNN2, 1/3 each (best overall; IV-2b 80.9%; `src/pipeline.py`)** | **82.5%** | `results/r11_round3_diverse_members.csv` |
+| R14 - R11 with EOG regressed out (IV-2b 79.8%) | 82.0% | `results/r14_eog_gate.csv` |
 | Phase 5 - CSP-only (within that run) | 62.2% | matches Phase 1 almost exactly - good consistency check |
 | Phase 7 - tangent-LDA, no realignment (own baseline, not directly comparable to Phase 1) | 65.9% | `results/phase7_riemannian_icp.csv` |
 | Phase 7 - + recenter/rescale | 66.6% | `results/phase7_riemannian_icp.csv` |

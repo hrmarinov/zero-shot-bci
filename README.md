@@ -7,10 +7,13 @@ motor-imagery brain–computer interfaces (BCIs).
 The name states the goal, not the current state. The endpoint is a decoder that works on
 a new session — ideally a new user — with **no labelled calibration data at all**. What
 this repository contains is the measured path toward it: what works, what provably does
-not, and the evidence for each. The best result so far (74.7% cross-session on 4-class
-BCI Competition IV-2a, a subject-specific convnet on per-session Riemannian-aligned input —
-[`docs/convnet_session_norm.md`](docs/convnet_session_norm.md)) still requires a calibration session; the calibration-free
-alternatives are far behind and are documented as such.
+not, and the evidence for each. The best result so far is an equal-weight ensemble of
+ShallowConvNets, FTSurrogate-trained ShallowConvNets and tangent-space logistic regression, all
+on per-session Riemannian-aligned input (R11, [`src/pipeline.py`](src/pipeline.py)). It reaches
+82.5% cross-session on 4-class BCI Competition IV-2a and 80.9% on 2-class IV-2b, against 66.9% and
+77.7% for CSP+LDA with Riemannian alignment ([`docs/diag_gates_d1_d4.md`](docs/diag_gates_d1_d4.md)).
+It still requires a calibration session; the calibration-free alternatives are far behind and are
+documented as such.
 
 ---
 
@@ -30,20 +33,40 @@ defensible one in the literature (Becker et al., 2022; Thompson, 2018) — see
 [`docs/state_of_the_art.md`](docs/state_of_the_art.md) §"Is illiteracy even the right frame?".
 
 **Everything here is evaluated as:** train on the calibration session, test on the
-evaluation session, 9 subjects, 4 classes, chance = 25.0%. The population-data setting is
+evaluation session, 9 subjects, 4 classes, chance = 25.0% (IV-2a). From R10 onward every
+result is also scored on BCI IV-2b (9 subjects, 2 classes, 3 channels, chance = 50%; train on
+recordings 1–3, test on 4–5), and a method passes only if it gains on both datasets. The population-data setting is
 deliberately hard — a method gets *one subject's own 288 calibration trials*, nothing else
 — because that matches "the user just sat down."
 
 ## Headline results
 
-| Method | Cross-session accuracy | Δ vs. baseline | Source |
-|---|---|---|---|
-| **ShallowConvNet on per-session Riemannian-aligned input** (R3) — best overall, provisional | **74.7%** | +12.5pp | [`results/r3_convnet_session_norm_summary.csv`](results/r3_convnet_session_norm_summary.csv) |
-| CSP+LDA + Riemannian alignment (Phase 2) | 66.9% | +4.7pp | [`results/phase2_riemannian_alignment_iv2a.csv`](results/phase2_riemannian_alignment_iv2a.csv) |
-| CSP+LDA, no adaptation (Phase 1) | 62.2% | — | [`results/phase1_baseline_iv2a.csv`](results/phase1_baseline_iv2a.csv) |
-| Prototypical-network meta-learning (Phase 6) | 49.0% (std 16.1) | −13.2pp | [`results/phase6_prototypical.csv`](results/phase6_prototypical.csv) |
-| Wavelet per-session calibration (Phase 4b) | 31.4% | −30.8pp | [`results/phase4b_wavelet_per_channel.csv`](results/phase4b_wavelet_per_channel.csv) |
-| Chance | 25.0% | — | — |
+| Method | IV-2a cross-session | Δ vs. baseline | IV-2b | Source |
+|---|---|---|---|---|
+| **R11 ensemble: 3 ShallowConvNet seeds + TS+LR + 2 FTSurrogate ShallowConvNet seeds, 1/3 per family** — best overall, provisional | **82.5%** | +20.3pp | **80.9%** | [`results/r11_round3_diverse_members.csv`](results/r11_round3_diverse_members.csv) |
+| R11 with the EOG channels regressed out of the EEG (R14) | 82.0% | +19.8pp | 79.8% | [`results/r14_eog_gate.csv`](results/r14_eog_gate.csv) |
+| R10 stack: 3 ShallowConvNet seeds + TS+LR, 1/2 each | 79.0% | +16.8pp | 80.1% | [`results/r10_round2_stack_position.csv`](results/r10_round2_stack_position.csv) |
+| ShallowConvNet on per-session Riemannian-aligned input (R3) | 74.7% | +12.5pp | 78.6% | [`results/r3_convnet_session_norm_summary.csv`](results/r3_convnet_session_norm_summary.csv) |
+| CSP+LDA + Riemannian alignment (Phase 2) | 66.9% | +4.7pp | 77.7% | [`results/compare_r11_vs_csp_lda.csv`](results/compare_r11_vs_csp_lda.csv) |
+| CSP+LDA, no adaptation (Phase 1) | 62.2% | — | — | [`results/phase1_baseline_iv2a.csv`](results/phase1_baseline_iv2a.csv) |
+| Prototypical-network meta-learning (Phase 6) | 49.0% (std 16.1) | −13.2pp | — | [`results/phase6_prototypical.csv`](results/phase6_prototypical.csv) |
+| Wavelet per-session calibration (Phase 4b) | 31.4% | −30.8pp | — | [`results/phase4b_wavelet_per_channel.csv`](results/phase4b_wavelet_per_channel.csv) |
+| Chance | 25.0% | — | 50.0% | — |
+
+**R11 vs CSP+LDA + Riemannian alignment, paired per subject**
+([`experiments/compare_r11_vs_csp_lda.py`](experiments/compare_r11_vs_csp_lda.py)):
+- R11 is +9.3 pp pooled over 18 subjects (16 up, 2 down, one-sided sign-flip p = 0.0001).
+- On IV-2a it is +15.5 pp, with all 9 subjects up.
+- On IV-2b it is +3.2 pp, with 7 subjects up. Subjects 2 and 8 are down 4.0 and 2.2 pp.
+- With the EOG channels regressed out, the gain is still +8.6 pp (p = 0.0005).
+
+**How much of that to believe.** R11 is the end of a long search on these same evaluation
+sessions. After shrinking for that search, the council review
+([`reports/r14_council_and_ideation.md`](reports/r14_council_and_ideation.md)) estimates the
+true gain at about +3.5 pp over a single ShallowConvNet and about +1.2 pp over R10. Its most robust
+fact is narrower: the mixed ensemble beats a CNN-only ensemble with the same number of members
+by +2.3 pp, with 16 subjects up and 0 down, on both datasets. No untouched dataset has confirmed
+R11 yet.
 
 Riemannian alignment (per-session recentering — whitening each session's own trials to
 identity) is the one adaptation method that reliably helps, and it needs **no other
@@ -238,18 +261,34 @@ applied before trusting any new number:
    Check the samples-per-feature ratio, not just whether the synthetic gate passed.
 5. **In-sample checks are cheap and catch scoring-rule bugs** before you blame
    generalization.
-6. **CSP+LDA is a genuinely strong, hard-to-beat baseline** for this task family.
+6. **CSP+LDA is a genuinely strong, hard-to-beat baseline** for this task family. It took a
+   diverse convnet + Riemannian ensemble to beat it convincingly (R11, +9.3 pp over 18 subjects).
+7. **Screen on two datasets at once.** Two methods that won on IV-2a alone (self-training,
+   FTSurrogate as a replacement) shrank to near zero on IV-2b. This is the winner's curse.
+8. **Check for eye movements.** On IV-2a/2b the three EOG channels alone decode the class far
+   above chance (a CNN reaches 52% on 4 classes and 70% on 2). Any low-frequency or frontal
+   feature needs an EOG control.
 
 ## Status
 
-**Established:** CSP+LDA + Riemannian alignment, 66.9% cross-session. **New, provisional
-(pending external replication):** subject-specific ShallowConvNet on per-session
-Riemannian-aligned input, 74.7% (pre-registered, audited; AdaBN adds nothing on top).
+**Established:** CSP+LDA + Riemannian alignment, 66.9% cross-session (IV-2a).
 
-**Most promising active direction:** prototypical-network meta-learning with same-subject
-episodes (49.0%, four subjects at 59–67%). Open questions: the subject-5 chance-level
-outlier, `episodes_per_step` tuning, and whether proper out-of-fold stacking with CSP now
-adds value.
+**Best, provisional (pending external replication): the R11 ensemble.**
+- It reaches 82.5% on IV-2a and 80.9% on IV-2b, and beats CSP+LDA+RA by +9.3 pp pooled.
+- It is one entry point, [`src/pipeline.py`](src/pipeline.py), and a full retrain through it
+  reproduces R11 exactly.
+- How it was reached ([`docs/diag_gates_d1_d4.md`](docs/diag_gates_d1_d4.md)):
+  - pre-registered screens R3–R13, scored jointly on IV-2a and IV-2b from R10 onward;
+  - an EOG validity gate (R14), which passed: removing eye signal costs 0.75 pp at most;
+  - a four-reviewer council ([`reports/r14_council_and_ideation.md`](reports/r14_council_and_ideation.md)).
+- The idea loop stopped after two rounds without gain (R12, R13). More screening on these 18
+  evaluation sessions would mostly fit noise.
+
+**Next:**
+1. A one-shot confirmation on an untouched two-session dataset (BNCI2015_001), with R11, the
+   1-fit LITE variant (FTSurrogate CNN + TS+LR) and a same-size CNN ensemble pre-registered
+   before download.
+2. Then the ensemble's calibration-burden curve, which ties it back to this project's goal.
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on
