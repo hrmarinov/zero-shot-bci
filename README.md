@@ -301,7 +301,13 @@ download, and the data were opened once (12 subjects, right hand vs feet):
 - The dataset's P300 recordings are not decodable through MOABB's loader, even within one session, so
   P300 is untested.
 
-**Next:** the ensemble's calibration-burden curve, which ties it back to this project's goal.
+**Calibration burden (B1).** The project's goal is fewer calibration trials. With only **144
+labelled trials**, R11 matches a single ShallowConvNet trained on the full session (+0.6 pp,
+non-inferior): about half the labels on IV-2a (288) and a third on IV-2b (~420). The pre-registered
+96-trial target was missed by 2.2 pp. R11's lead over a single CNN grows as labels get scarce:
++4.8 pp with the full session, +9.4 pp with 48 trials, and every subject improves at both ends.
+
+**Next:** confirm the calibration-burden claim on the BNCI2015_001 lockbox data.
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on

@@ -830,3 +830,60 @@ E-Prime files would be a separate task.
 - So the recipe's *direction* generalises: alignment helps, and diversity helps. For SSVEP, though,
   the best session-transfer strategy is a decoder that needs no session-specific training at all, so
   the recipe is not the best choice there.
+
+## B1 — calibration burden: R11 halves the labelled trials needed to match a single CNN (`experiments/b1_r11_calibration_burden.py`)
+
+**Question.** This project's goal is less calibration. Does the ensemble reduce how many labelled
+training trials a user needs?
+
+**Design.** Pre-registered and committed (`60fb56a`) before the run; A29 conventions.
+- **Budgets:** 48, 96 and 144 labelled training trials, stratified by class, 3 seeded draws each.
+- **Training side:** alignment is fitted on the drawn trials only.
+- **Test:** the full evaluation session.
+- **FULL** is the whole training session: 288 trials on IV-2a and 400–440 on IV-2b. It reproduces R11
+  exactly.
+
+| Budget (pooled, 18 subjects) | Single CNN | TS+LR | CSP+LDA+RA | R10 | **R11** |
+|---|---|---|---|---|---|
+| 48 | 60.51 | 68.75 | 67.06 | 66.42 | **69.88** |
+| 96 | 67.50 | 71.19 | 70.08 | 72.10 | **74.72** |
+| 144 | 71.00 | 72.09 | 70.60 | 75.03 | **77.48** |
+| FULL | 76.89 | 73.31 | 72.31 | 79.51 | **81.65** |
+
+| Budget | IV-2a: single CNN → R11 | IV-2b: single CNN → R11 |
+|---|---|---|
+| 48 | 49.49 → 63.50 | 71.54 → 76.25 |
+| 96 | 58.79 → 71.30 | 76.21 → 78.15 |
+| 144 | 64.95 → 75.68 | 77.06 → 79.27 |
+| FULL | 75.21 → 82.45 | 78.58 → 80.86 |
+
+**Parity with a single CNN on the full session** (R11 at n minus single CNN at FULL; one-sided 95%
+bootstrap lower bound, non-inferiority margin −1 pp):
+
+| n | Mean | Lower bound | Up | Verdict |
+|---|---|---|---|---|
+| 48 | −7.01 | −9.35 | 3/18 | not shown |
+| **96 (primary H1)** | **−2.17** | **−3.18** | 3/18 | **not shown: H1 not supported** |
+| 144 (secondary) | +0.59 | −0.21 | 11/18 | **non-inferior** |
+
+**R11's gain over the single CNN *grows* as the budget shrinks:**
+- +4.8 pp at FULL, +6.5 pp at 144, +7.2 pp at 96 and +9.4 pp at 48;
+- at FULL and at 48 every one of the 18 subjects improves;
+- p < 0.0001 at every budget.
+
+Over CSP+LDA+RA the gain is +2.8 / +4.6 / +6.9 / +9.3 pp, from 48 trials up to FULL.
+
+**Reading:**
+- The pre-registered parity at 96 trials fails: R11 at 96 is 2.2 pp below a single CNN on the full
+  session. But **R11 at 144 trials matches it** (+0.6 pp, non-inferior). That is about half the
+  labelled data on IV-2a (144 vs 288) and about a third on IV-2b (144 vs ~420).
+- **The ensemble matters most when labels are scarce.** At 48 trials a single CNN is near 50% on 4-class
+  IV-2a, while R11 reaches 63.5%. The Riemannian members (TS+LR, and alignment on the training side)
+  carry the low-budget regime, and the CNNs take over as data grows. This is the "built-in floor"
+  property the project's lessons call for.
+- R10 (CNN3 + TS+LR) does not reach parity before FULL. The FTSurrogate members are part of the
+  low-budget gain.
+- **The project-level claim is now:** with the R11 ensemble, a new session needs about half the
+  labelled calibration trials to match the accuracy a single CNN reaches with the full calibration
+  session. This is on development data, so a lockbox confirmation of the *burden* claim is still
+  needed.

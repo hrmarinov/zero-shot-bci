@@ -1229,6 +1229,11 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > (alignment +9.8 pp, Holm p = 0.034; diverse second member +5.0 pp, p = 0.005), but training-free CCA
 > alone (84.1%) beats every trained pipeline. The P300 arm is INVALID: even within-session AUC is ~0.5
 > through MOABB's adapter (X1b) - its flash labels/timing carry no P300. Open: fix that adapter.
+>
+> **B1 calibration burden (2026-11-06):** R11 at 144 labelled trials matches a single CNN on the full
+> session (+0.6 pp, non-inferior); the pre-registered 96-trial parity fails (-2.2 pp). R11's gain over a
+> single CNN grows as labels shrink (+4.8 pp FULL -> +9.4 pp at 48, 18/18 up). Open: confirm the
+> burden claim on the lockbox (BNCI2015_001, 200 training trials per subject).
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
