@@ -770,3 +770,63 @@ MOABB's FakeDataset exercised the code first. The dataset was opened once, with 
 - **LITE does not replace R11.** It loses 2.5 pp, with 10 of 12 subjects down. The extra fits are worth
   their cost.
 - **R11 stays the reference pipeline,** now confirmed outside the development data.
+
+## X1 — cross-paradigm session transfer (GuttmannFlury2025): SSVEP supports the recipe; the P300 data is not decodable through MOABB (`experiments/x1_cross_paradigm_guttmann.py`)
+
+**Question.** Do the two ingredients of our motor-imagery recipe also help other paradigms transfer from
+one session to the next?
+- the ingredients: per-session Riemannian alignment, and a diverse second model in the ensemble;
+- the test: train on the first session, test on the second, for the 17 subjects with two or more
+  sessions;
+- this is CPU only.
+
+The study was pre-registered and committed before download (`c5ee6bc`), with a dry run on FakeDatasets.
+
+**Fixes during the run** (each made before the affected subject was scored; protocol unchanged):
+- `1d6837e`: channel-name case (`POz`/`Oz`).
+- `0470efe`: subject 12 is dropped from SSVEP. Its Zenodo archive indexes the first session's EEG before
+  the start of the file (the md5 matches Zenodo). A label-free integrity check of all 34 archives found
+  no other problem.
+
+**Limitations fixed in advance:**
+- The paper does not report the interval between sessions.
+- In SSVEP, gaze direction is class-locked by design: the four targets sit in the four screen quadrants.
+
+| Paradigm | No alignment | + per-session alignment | Second model alone | Ensemble |
+|---|---|---|---|---|
+| SSVEP, accuracy, n = 16 (chance 25%) | 50.3 | **60.2** | CCA + LR: **84.1** | 65.2 |
+| P300, AUC, n = 17 | 49.8 | 49.7 | xDAWN + LDA: 50.0 | 49.9 |
+
+| Hypothesis | Mean [95% CI] | Up / down | p (Holm) | Verdict |
+|---|---|---|---|---|
+| S1 SSVEP: alignment − none | **+9.84 pp** [+2.50, +18.59] | 10 / 4 | 0.034 | **SUPPORTED** |
+| S2 SSVEP: ensemble − aligned TS+LR | **+5.00 pp** [+2.34, +7.97] | 11 / 1 | 0.005 | **SUPPORTED** |
+| P1 P300: alignment − none | −0.17 pp | 4 / 13 | 0.94 | not supported (**invalid**, see X1b) |
+| P2 P300: ensemble − aligned TS+LR | +0.25 pp | 11 / 6 | 0.68 | not supported (**invalid**) |
+
+**X1b, post-hoc validity check** (`experiments/x1b_p300_within_session_check.py`, first session only).
+Even *within* one session, the P300 pipeline is at chance:
+
+| Subject | Within-session 5-fold AUC | max \|Target − NonTarget\| | At |
+|---|---|---|---|
+| 2 | 0.463 | 571 µV | 0.000 s |
+| 4 | 0.504 | 849 µV | 0.008 s |
+| 13 | 0.506 | 1451 µV | 0.000 s |
+| 17 | 0.510 | 62995 µV | 0.461 s |
+
+The Target fraction is 1/6, as the speller design implies. The "difference" sits at flash onset with
+artefact-sized amplitude, not at a ~300 ms P300. So the flash labels or event timing that the MOABB
+adapter produces carry no P300. **The P300 arm measures nothing about session transfer.** It is
+reported as invalid, not as a negative result. Repairing the adapter's event decoding from the sync and
+E-Prime files would be a separate task.
+
+**Reading (SSVEP):**
+- Per-session alignment rescues the trained Riemannian decoder across sessions (+9.8 pp). Without
+  alignment, 5 of 16 subjects collapse to exactly chance (25%), a constant prediction after the
+  session shift.
+- A diverse second model helps the aligned decoder (+5.0 pp, 11 up, 1 down), as in MI.
+- **However, the training-free CCA decoder alone (84.1%) beats every trained pipeline,** including the
+  ensemble (65.2%). Equal-weight averaging with the weaker aligned TS+LR drags CCA down.
+- So the recipe's *direction* generalises: alignment helps, and diversity helps. For SSVEP, though,
+  the best session-transfer strategy is a decoder that needs no session-specific training at all, so
+  the recipe is not the best choice there.

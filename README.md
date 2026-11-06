@@ -293,10 +293,15 @@ download, and the data were opened once (12 subjects, right hand vs feet):
   with 12 subjects.
 - The 1-fit LITE variant is not a substitute (−2.5 pp).
 
-**Next:**
-1. The ensemble's calibration-burden curve, which ties it back to this project's goal.
-2. A cheap cross-paradigm check (P300/SSVEP) of whether per-session alignment + TS+LR transfers
-   between sessions there too.
+**Beyond motor imagery (X1, GuttmannFlury2025).**
+- In SSVEP, both recipe ingredients help a trained decoder transfer between sessions:
+  - per-session alignment adds +9.8 pp;
+  - a diverse second model adds +5.0 pp.
+- A training-free CCA decoder (84%) still beats every trained SSVEP pipeline.
+- The dataset's P300 recordings are not decodable through MOABB's loader, even within one session, so
+  P300 is untested.
+
+**Next:** the ensemble's calibration-burden curve, which ties it back to this project's goal.
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on

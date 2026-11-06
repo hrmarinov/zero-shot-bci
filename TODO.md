@@ -1224,6 +1224,11 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > **L1 lockbox (2026-11-05): R11 REPLICATES on untouched BNCI2015_001.** R11 87.9% vs single CNN
 > 84.2% (+3.7 pp, 10/12 up, Holm p = 0.002) and CSP+LDA+RA 77.0% (+10.9 pp, 12/12). The diversity
 > contrast vs the size-matched control is +1.3 pp (n.s.); LITE is not non-inferior (-2.5 pp).
+>
+> **X1 cross-paradigm (2026-11-06, GuttmannFlury2025):** SSVEP supports both recipe ingredients
+> (alignment +9.8 pp, Holm p = 0.034; diverse second member +5.0 pp, p = 0.005), but training-free CCA
+> alone (84.1%) beats every trained pipeline. The P300 arm is INVALID: even within-session AUC is ~0.5
+> through MOABB's adapter (X1b) - its flash labels/timing carry no P300. Open: fix that adapter.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
