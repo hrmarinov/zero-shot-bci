@@ -1234,6 +1234,10 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > session (+0.6 pp, non-inferior); the pre-registered 96-trial parity fails (-2.2 pp). R11's gain over a
 > single CNN grows as labels shrink (+4.8 pp FULL -> +9.4 pp at 48, 18/18 up). Open: confirm the
 > burden claim on the lockbox (BNCI2015_001, 200 training trials per subject).
+>
+> **L2 (2026-11-06): burden claim CONFIRMED on the lockbox.** On BNCI2015_001, R11 trained on 100 of 200
+> trials is non-inferior to a single CNN on all 200 (+0.4 pp, lower bound -0.74); at 144 it beats it
+> (+2.7 pp). R11 beats a single CNN at every budget, 12/12 subjects up at 48/100/144.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

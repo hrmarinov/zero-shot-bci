@@ -887,3 +887,46 @@ Over CSP+LDA+RA the gain is +2.8 / +4.6 / +6.9 / +9.3 pp, from 48 trials up to F
   labelled calibration trials to match the accuracy a single CNN reaches with the full calibration
   session. This is on development data, so a lockbox confirmation of the *burden* claim is still
   needed.
+
+## L2 — LOCKBOX: the calibration-burden claim CONFIRMS on BNCI2015_001 (`experiments/l2_lockbox_burden.py`)
+
+**Protocol.** Pre-registered and committed (`473f78d`) before any reduced-budget result on BNCI2015_001
+existed; opened once.
+- **Design:** B1's design on the lockbox, using L1's data path and caches.
+- **Training pool:** session A, 200 trials, 100 per class.
+- **Budgets:** 48, 100 and 144 trials, 3 stratified draws each.
+- **Test:** all of session B.
+- **Primary:** R11 trained on **half** the session (100 trials) is non-inferior (margin −1 pp) to a
+  single CNN trained on the full 200.
+- **Caveat stated in advance:** L1 had already used this dataset's full-budget results.
+- **Check:** FULL reproduces L1 for all 12 subjects.
+
+| Budget | Single CNN | TS+LR | CSP+LDA+RA | R10 | **R11** |
+|---|---|---|---|---|---|
+| 48 | 76.08 | 79.33 | 75.86 | 80.22 | **82.03** |
+| 100 | 79.44 | 80.18 | 74.60 | 82.94 | **84.56** |
+| 144 | 83.41 | 80.69 | 77.40 | 85.28 | **86.83** |
+| FULL (200) | 84.18 | 80.88 | 76.96 | 86.00 | **87.88** |
+
+| R11 at n − single CNN at FULL | Mean | One-sided 95% lower bound | Up | Verdict |
+|---|---|---|---|---|
+| 48 | −2.15 | −3.46 | 4/12 | not shown |
+| **100 (primary H1)** | **+0.38** | **−0.74** | 8/12 | **NON-INFERIOR: CONFIRMED** |
+| 144 | +2.65 | +1.36 | 10/12 | non-inferior (and better) |
+
+**R11's gain over a single CNN at the same budget:**
+- +6.0 pp at 48 trials, +5.1 at 100, +3.4 at 144 and +3.7 at FULL;
+- every subject improves at 48, 100 and 144, and 11 of 12 at FULL;
+- p ≤ 0.0005 at every budget.
+
+Over CSP+LDA+RA the gain is +6.2 to +10.9 pp.
+
+**Reading:**
+- **The burden claim replicates outside the development data.** On BNCI2015_001, R11 trained on half the
+  labelled calibration trials matches a single ShallowConvNet trained on all of them.
+- R11 with 144 trials beats the full-session single CNN outright, by +2.7 pp with the lower bound
+  above zero.
+- As on IV-2a/2b, the ensemble's advantage is largest when labels are scarce.
+- **Combined with L1, the project's two headline claims both hold on an untouched dataset:**
+  1. R11 beats a single CNN (+3.7 pp) and CSP+LDA+RA (+10.9 pp).
+  2. R11 halves the calibration trials needed to reach single-CNN accuracy.

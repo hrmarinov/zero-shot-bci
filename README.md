@@ -307,7 +307,10 @@ non-inferior): about half the labels on IV-2a (288) and a third on IV-2b (~420).
 96-trial target was missed by 2.2 pp. R11's lead over a single CNN grows as labels get scarce:
 +4.8 pp with the full session, +9.4 pp with 48 trials, and every subject improves at both ends.
 
-**Next:** confirm the calibration-burden claim on the BNCI2015_001 lockbox data.
+**Burden claim confirmed on the lockbox (L2, BNCI2015_001), pre-registered.** R11 trained on
+**half** the calibration session (100 of 200 trials) matches a single ShallowConvNet trained on all
+200 (84.6% vs 84.2%, non-inferior). With 144 trials it beats it (+2.7 pp). At every budget R11 beats
+a single CNN trained on the same trials, and at 48, 100 and 144 trials every subject improves.
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on
