@@ -36,6 +36,8 @@ from sklearn.linear_model import LogisticRegression
 from src.adaptation.augmentation import make_augmentation
 from src.adaptation.convnet import ShallowConvNet, TrainConfig, predict_proba, set_deterministic, train_model
 from src.adaptation.riemannian_align import RiemannianAlignment
+from src.adaptation.stacked_convnet import (StackedShallowConvNet, dropout_rng_state, predict_proba_stacked,
+                                            train_stacked)
 
 CNN_BAND = dict(fmin=4.0, fmax=38.0, tmin=0.0, tmax=4.0)  # R3's WIDE input
 CNN_TRAIN = TrainConfig(epochs=300, batch_size=48, lr=1e-3, weight_decay=1e-3, max_shift=0)  # R3's CFG
@@ -45,13 +47,18 @@ RA_SELF_CHECK_TOL = 1e-8
 @dataclass(frozen=True)
 class PipelineConfig:
     """How many members of each family to fit. ``one_hot_targets`` only selects the loss-target format
-    (IV-2a's cached members used integer targets, IV-2b's one-hot); both are cross-entropy."""
+    (IV-2a's cached members used integer targets, IV-2b's one-hot); both are cross-entropy.
+
+    ``fast`` trains all CNN members of a subject as one stacked model (src/adaptation/stacked_convnet.py):
+    same seeds, initial weights, batch orders, dropout masks and augmentation draws, ~4x faster, but not
+    bit-identical (float rounding; measured in docs/diag_gates_d1_d4.md, F1). Off by default."""
 
     n_cnn: int = 3
     n_fts: int = 2
     use_tslr: bool = True
     one_hot_targets: bool = False
     train: TrainConfig = field(default_factory=lambda: CNN_TRAIN)
+    fast: bool = False
 
     def __post_init__(self) -> None:
         if self.n_cnn < 0 or self.n_fts < 0:
@@ -108,14 +115,20 @@ def tslr_member(data: SubjectData) -> np.ndarray:
     return LogisticRegression(C=1.0, max_iter=5000).fit(Ft, data.y[data.train]).predict_proba(Fe)
 
 
-def cnn_member(data: SubjectData, A: np.ndarray, n_classes: int, seed: int, augmentation: str | None,
-               cfg: PipelineConfig, device: torch.device) -> np.ndarray:
-    """One ShallowConvNet on the aligned CNN input ``A``, built after seeding (bit-exact reruns)."""
+def _cnn_tensors(data: SubjectData, A: np.ndarray, n_classes: int, cfg: PipelineConfig,
+                 device: torch.device) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     Xt = torch.as_tensor(A[data.train].astype(np.float32), device=device)
     Xe = torch.as_tensor(A[~data.train].astype(np.float32), device=device)
     yt = data.y[data.train]
     target = (torch.as_tensor(np.eye(n_classes)[yt].astype(np.float32), device=device) if cfg.one_hot_targets
               else torch.as_tensor(yt, dtype=torch.long, device=device))
+    return Xt, Xe, target
+
+
+def cnn_member(data: SubjectData, A: np.ndarray, n_classes: int, seed: int, augmentation: str | None,
+               cfg: PipelineConfig, device: torch.device) -> np.ndarray:
+    """One ShallowConvNet on the aligned CNN input ``A``, built after seeding (bit-exact reruns)."""
+    Xt, Xe, target = _cnn_tensors(data, A, n_classes, cfg, device)
     set_deterministic(seed)
     augment = None if augmentation is None else make_augmentation(augmentation, seed)
     model = ShallowConvNet(A.shape[1], n_classes, A.shape[2]).to(device)
@@ -125,6 +138,30 @@ def cnn_member(data: SubjectData, A: np.ndarray, n_classes: int, seed: int, augm
     if device.type == "cuda":
         torch.cuda.empty_cache()
     return probs
+
+
+def cnn_members_stacked(data: SubjectData, A: np.ndarray, n_classes: int,
+                        specs: list[tuple[int, str | None]], cfg: PipelineConfig,
+                        device: torch.device) -> list[np.ndarray]:
+    """The members ``specs`` = [(seed, augmentation), ...] trained together as one stacked model.
+
+    Each member is built after ``set_deterministic(seed)`` exactly as in :func:`cnn_member`, and keeps its
+    own batch order, dropout stream and augmentation draws (src/adaptation/stacked_convnet.py)."""
+    Xt, Xe, target = _cnn_tensors(data, A, n_classes, cfg, device)
+    members, states, augments = [], [], []
+    for seed, aug in specs:
+        set_deterministic(seed)
+        augments.append(None if aug is None else make_augmentation(aug, seed))
+        members.append(ShallowConvNet(A.shape[1], n_classes, A.shape[2]).to(device))
+        states.append(dropout_rng_state(device))
+    model = StackedShallowConvNet(members).to(device)
+    del members
+    train_stacked(model, Xt, target, cfg.train, [s for s, _ in specs], augments, states)
+    probs = predict_proba_stacked(model, Xe)
+    del model
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+    return list(probs)
 
 
 def combine(families: dict[str, np.ndarray]) -> np.ndarray:
@@ -144,9 +181,30 @@ def fit_predict(data: SubjectData, n_classes: int, cfg: PipelineConfig = R11,
     """
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     aligned: list[np.ndarray] = []  # CNN input, aligned once on first use
+    suffix = "_fast" if cfg.fast else ""  # fast members never mix with the exact cache
+    specs = [("cnn", k, None) for k in range(cfg.n_cnn)] + [("fts", k, "ftsurrogate") for k in range(cfg.n_fts)]
+
+    def cache_path(family: str, seed: int) -> Path | None:
+        return None if cache_dir is None else Path(cache_dir) / f"{family}_seed{seed}{suffix}.npy"
+
+    stacked: dict[tuple[str, int], np.ndarray] = {}
+    if cfg.fast:
+        todo = [s for s in specs if (p := cache_path(s[0], s[1])) is None or not p.exists()]
+        if todo:
+            if before_fit is not None:
+                before_fit()
+            A = align_by_group(data.X_cnn, data.groups)
+            probs = cnn_members_stacked(data, A, n_classes, [(k, aug) for _, k, aug in todo], cfg, device)
+            for (fam, k, _), p in zip(todo, probs):
+                stacked[(fam, k)] = p
 
     def member(family: str, seed: int, aug: str | None) -> np.ndarray:
-        path = None if cache_dir is None else Path(cache_dir) / f"{family}_seed{seed}.npy"
+        path = cache_path(family, seed)
+        if (family, seed) in stacked:
+            if path is not None:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                np.save(path, stacked[(family, seed)])
+            return stacked[(family, seed)]
         if path is not None and path.exists():
             return np.load(path)
         if before_fit is not None:
