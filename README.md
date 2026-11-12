@@ -7,13 +7,19 @@ motor-imagery brain–computer interfaces (BCIs).
 The name states the goal, not the current state. The endpoint is a decoder that works on
 a new session — ideally a new user — with **no labelled calibration data at all**. What
 this repository contains is the measured path toward it: what works, what provably does
-not, and the evidence for each. The best result so far is an equal-weight ensemble of
-ShallowConvNets, FTSurrogate-trained ShallowConvNets and tangent-space logistic regression, all
-on per-session Riemannian-aligned input (R11, [`src/pipeline.py`](src/pipeline.py)). It reaches
-82.5% cross-session on 4-class BCI Competition IV-2a and 80.9% on 2-class IV-2b, against 66.9% and
-77.7% for CSP+LDA with Riemannian alignment ([`docs/diag_gates_d1_d4.md`](docs/diag_gates_d1_d4.md)).
-It still requires a calibration session; the calibration-free alternatives are far behind and are
-documented as such.
+not, and the evidence for each.
+
+**Where it stands.** The best decoder is **R11** ([`src/pipeline.py`](src/pipeline.py)). It is an
+equal-weight ensemble of ShallowConvNets, FTSurrogate-trained ShallowConvNets and tangent-space
+logistic regression, all on per-session Riemannian-aligned input.
+- **On the development data:** 82.5% cross-session on 4-class BCI Competition IV-2a and 80.9% on
+  2-class IV-2b, against 66.9% and 77.7% for CSP+LDA with Riemannian alignment.
+- **On an untouched lockbox dataset** (BNCI2015_001, opened once under pre-registration):
+  - 87.9%, against 84.2% for a single ShallowConvNet and 77.0% for CSP+LDA;
+  - it needs only **half the labelled calibration trials** to match a single ShallowConvNet trained on
+    the full session.
+- **Still required:** a (shorter) calibration session. The fully calibration-free alternatives are
+  far behind and are documented as such.
 
 ---
 
@@ -39,11 +45,15 @@ recordings 1–3, test on 4–5), and a method passes only if it gains on both d
 deliberately hard — a method gets *one subject's own 288 calibration trials*, nothing else
 — because that matches "the user just sat down."
 
+Claims that survive this development loop are then confirmed **once** on a held-back lockbox
+dataset (BNCI2015_001: 12 subjects, right hand vs feet, session A → B), pre-registered before
+download. Evaluation-session labels are never used for fitting, model selection or early stopping.
+
 ## Headline results
 
 | Method | IV-2a cross-session | Δ vs. baseline | IV-2b | Source |
 |---|---|---|---|---|
-| **R11 ensemble: 3 ShallowConvNet seeds + TS+LR + 2 FTSurrogate ShallowConvNet seeds, 1/3 per family** — best overall, provisional | **82.5%** | +20.3pp | **80.9%** | [`results/r11_round3_diverse_members.csv`](results/r11_round3_diverse_members.csv) |
+| **R11 ensemble: 3 ShallowConvNet seeds + TS+LR + 2 FTSurrogate ShallowConvNet seeds, 1/3 per family** — best overall, confirmed on the lockbox | **82.5%** | +20.3pp | **80.9%** | [`results/r11_round3_diverse_members.csv`](results/r11_round3_diverse_members.csv) |
 | R11 with the EOG channels regressed out of the EEG (R14) | 82.0% | +19.8pp | 79.8% | [`results/r14_eog_gate.csv`](results/r14_eog_gate.csv) |
 | R10 stack: 3 ShallowConvNet seeds + TS+LR, 1/2 each | 79.0% | +16.8pp | 80.1% | [`results/r10_round2_stack_position.csv`](results/r10_round2_stack_position.csv) |
 | ShallowConvNet on per-session Riemannian-aligned input (R3) | 74.7% | +12.5pp | 78.6% | [`results/r3_convnet_session_norm_summary.csv`](results/r3_convnet_session_norm_summary.csv) |
@@ -69,12 +79,23 @@ by +2.3 pp, with 16 subjects up and 0 down, on both datasets. **R11 has since be
 untouched dataset** (BNCI2015_001, see Status): +3.7 pp over a single CNN, as the shrunk estimate
 predicted.
 
-Riemannian alignment (per-session recentering — whitening each session's own trials to
-identity) is the one adaptation method that reliably helps, and it needs **no other
-subject's data**. It is statistically significant for 3/9 subjects individually
-(McNemar). Every method that borrows another subject's data to correct this subject's
-estimate has failed. The full, always-current number table is the "Current numbers"
-section of [`docs/progress_and_direction.md`](docs/progress_and_direction.md#current-numbers-single-source-of-truth---update-when-a-phase-reruns).
+**Against the published state of the art** ([`docs/state_of_the_art.md`](docs/state_of_the_art.md) §0;
+same subject-specific session 1 → session 2 split):
+- The strongest leak-free published result is TCFormer (2025): 84.8% on IV-2a and 87.7% on IV-2b.
+- R11 is 2.3 pp below it on IV-2a.
+- On IV-2b the gap is mostly *eye movement*. Published IV-2b pipelines use 0.5–100 Hz input. Moving
+  our ShallowConvNet to that input gains +4.4 pp, but regressing out the EOG channels removes all of
+  it (D6).
+- So published IV-2b numbers likely include ~4–5 pp of ocular decoding. Our 4–38 Hz input keeps that
+  share to about 1 pp (R14).
+
+Riemannian alignment (per-session recentering, which whitens each session's own trials to
+identity) is the adaptation step every successful pipeline here relies on, and it needs **no other
+subject's data**. Every method that borrows another subject's data to correct this subject's
+estimate has failed. The full number table is the "Current numbers" section of
+[`docs/progress_and_direction.md`](docs/progress_and_direction.md#current-numbers-single-source-of-truth---update-when-a-phase-reruns).
+The complete log of every gate, screen and confirmation since R3 is
+[`docs/diag_gates_d1_d4.md`](docs/diag_gates_d1_d4.md).
 
 ## The finding that matters most
 
@@ -106,21 +127,28 @@ the method otherwise is.**
 
 ```
 src/                      Reusable library (imported by every experiment)
+  pipeline.py             The R11 decoder as one entry point: fit_predict() with R11 / R10 / LITE configs
   config.py               Repo paths + shared constants; MNE/MOABB cache-path fix
   datasets.py             MOABB loaders: IV-2a, IV-2b, OpenBMI, PhysioNet
+  gpu_health.py           Waits for a healthy GPU before each fit (long unattended runs)
   preprocessing.py        Reusable artifact-cleaning pipeline (notch, bandpass, ICA EOG/muscle)
   baselines.py            CSP+LDA reference pipeline
   evaluate.py             Within/cross-session protocols, Wilson CIs, exact McNemar
   synthetic_eeg.py        Ground-truth ERD/ERS generator (the Stage 0 validation gate)
   adaptation/             Every adaptation/personalization method (see below)
-experiments/              One script per phase. `stage0_*` = synthetic ground-truth gates
+experiments/              One script per phase. `stage0_*` = synthetic ground-truth gates;
+                          r3_..r14_ = pre-registered screens; d6_ = diagnostics; l1_/l2_ = lockbox;
+                          b1_ = calibration burden; x1_ = cross-paradigm
 results/                  Committed CSVs, one per experiment run (+ smoketests/ scratch)
-tests/                    Unit tests for the protocol maths, loaders and generator
-docs/                     Literature survey, execution log, pipeline design doc, script index
+tests/                    Unit tests for the protocol maths, loaders, generator and pipeline
+docs/                     Literature survey, execution log, gate/screen log, script index
+reports/                  Ideation rounds and the R14 council review
 conftest.py               Makes `src` importable under pytest
 ```
 
-`src/adaptation/` holds the methods: `riemannian_align.py` (the winner),
+`src/adaptation/` holds the methods: `riemannian_align.py` (the alignment every working pipeline
+uses), `convnet.py` (ShallowConvNet + deterministic trainer), `augmentation.py` (FTSurrogate and
+the other screened augmentations),
 `spd_shrinkage.py`, `geometric_correction.py`, `prototypical_network.py`,
 `wavelet_calibration.py`, `active_calibration.py`, `coherent_point_drift.py`,
 `combat_align.py`, `riemannian_icp.py`, `latency_alignment.py`, `flow_field.py`,
@@ -134,7 +162,9 @@ its CSV into `results/`.
 | Document | What it is |
 |---|---|
 | [`docs/progress_and_direction.md`](docs/progress_and_direction.md) | **Start here.** The execution log and decision history: what was tried, what worked, what didn't, and why. Contains the single-source-of-truth results table and the methodology rules |
-| [`docs/state_of_the_art.md`](docs/state_of_the_art.md) | Literature survey (~950 lines): published baselines, Riemannian alignment prior art, what is genuinely still open, and five cross-disciplinary transplant ideas with verdicts on each |
+| [`docs/diag_gates_d1_d4.md`](docs/diag_gates_d1_d4.md) | The log from R4 on: gating diagnostics, every pre-registered screen (R5–R14), the IV-2b eye-movement diagnosis (D6), the lockbox confirmations (L1, L2), the calibration-burden curve (B1) and the cross-paradigm study (X1) |
+| [`reports/r14_council_and_ideation.md`](reports/r14_council_and_ideation.md) | Four-reviewer critique of R3–R13: shrunk effect sizes, simplification ablations, literature position, next moves |
+| [`docs/state_of_the_art.md`](docs/state_of_the_art.md) | Literature survey: the leak-checked accuracy to beat (§0), published baselines, Riemannian alignment prior art, what is genuinely still open, and cross-disciplinary transplant ideas with verdicts |
 | [`docs/wavelet_personalization_pipeline.md`](docs/wavelet_personalization_pipeline.md) | Design doc for the planned fingerprint-conditioned pipeline (learned geometric correction + personalized wavelet front end), including its risks |
 | [`docs/experiments.md`](docs/experiments.md) | Index of all 43 experiment scripts: what each does, what it writes, roughly how long it takes |
 | [`results/README.md`](results/README.md) | Provenance of every committed CSV — including where an artifact is missing or was reconstructed |
@@ -155,11 +185,14 @@ with. Two things worth knowing before you install:
 
 - **`torch`**: plain PyPI gives you the CPU build. This work used the CUDA 12.4 build; for
   GPU, install torch from the PyTorch index first (see the comment in `requirements.txt`).
-- **`braindecode` is a dev dependency** (`requirements-dev.txt`), not needed for any result.
-  It only imports when `torchaudio` matches torch exactly: with torch 2.6.0+cu124 install
-  `torchaudio==2.6.0` from the PyTorch cu124 index with `--no-deps` *before* the dev file
-  (the command is in `requirements-dev.txt`). Our own `ShallowConvNet` is tested to give
-  identical outputs to braindecode's `ShallowFBCSPNet` under the same weights.
+- **`braindecode` (in `requirements-dev.txt`) is required for R11 and every result from R8 on**,
+  because the FTSurrogate augmentation comes from it. It only imports when `torchaudio` matches
+  torch exactly: with torch 2.6.0+cu124, install `torchaudio==2.6.0` from the PyTorch cu124 index
+  with `--no-deps` *before* the dev file (the command is in `requirements-dev.txt`). Our own
+  `ShallowConvNet` is tested to give identical outputs to braindecode's `ShallowFBCSPNet` under the
+  same weights.
+- **A CUDA GPU** is needed for the CNN experiments; the ShallowConvNet fits take seconds to a
+  minute each. Training is deterministic, and reruns are byte-identical on the same machine.
 
 Verify the install with the cheapest assertion-gated check, which needs no dataset and no
 download:
@@ -188,6 +221,8 @@ Nothing is downloaded until an experiment needs it; MOABB/MNE caches everything 
 | BCI Competition IV-2b (`BNCI2014_004`) | Generalization check: 9 subjects, 2-class, 3 channels | ~300 MB |
 | OpenBMI / Lee2019 (`Lee2019_MI`) | External population pool (20 of 54 subjects used) | ~600 MB/subject |
 | PhysioNet MI (`PhysionetMI`) | Main population pool (108 subjects), reuse for Phase 2d/Module A/Phase 6 | ~2–4 GB total |
+| BNCI2015_001 | **Lockbox** (L1, L2): 12 subjects, right hand vs feet, 2–3 sessions | ~1 GB |
+| GuttmannFlury2025 (P300 + SSVEP) | Cross-paradigm study (X1), the 17 subjects with ≥ 2 sessions | ~35 GB (archives include eye-tracking and video) |
 
 ```bash
 .venv\Scripts\python experiments\prefetch_physionet.py   # optional: pre-fetch + validate the 108-subject pool
@@ -203,6 +238,10 @@ Two data-handling details are load-bearing and already handled in code:
   sidesteps this by setting a cwd-relative `MNE_DATA`, which keeps the cache inside
   `data/`. (An early run still left an ignored `C-/` artifact directory behind; it is safe
   to delete.)
+- **GuttmannFlury2025, subject 12, SSVEP:** the hosted archive `S12.zip` indexes its first
+  session before the start of the file (its md5 matches Zenodo), so that session is unreadable.
+  X1 excludes subject 12 from SSVEP. Separately, MOABB's loader for this dataset's P300 speller
+  yields labels with no P300 in them, even within one session (X1b).
 
 ## Reproducing the results
 
@@ -237,6 +276,25 @@ want the datasets cached first, and runtimes are rough.
 # Cross-disciplinary idea tests
 .venv\Scripts\python experiments\idea10_4_active_calibration.py            # real but narrow effect
 .venv\Scripts\python experiments\idea10_5_closure_amplitude_check.py       # invariance real, wrong problem (seconds)
+
+# The current best (R11) and its confirmations (GPU)
+.venv\Scripts\python experiments\check_pipeline_reproduces_r11.py          # retrains R11 via src/pipeline.py, checks it bit for bit (~30 min)
+.venv\Scripts\python experiments\compare_r11_vs_csp_lda.py                 # R11 vs CSP+LDA+RA, paired per subject (CPU)
+.venv\Scripts\python experiments\r14_eog_gate.py                           # EOG-regressed retrain of every member (~40 min)
+.venv\Scripts\python experiments\d6_iv2b_gap.py                            # why published IV-2b numbers are higher: eye movement (~1 h)
+.venv\Scripts\python experiments\b1_r11_calibration_burden.py              # accuracy vs labelled trials, IV-2a + IV-2b (~1.5 h)
+.venv\Scripts\python experiments\l1_lockbox_bnci2015_001.py                # lockbox: R11 on BNCI2015_001 (~40 min)
+.venv\Scripts\python experiments\l2_lockbox_burden.py                      # lockbox: calibration burden (~1 h)
+.venv\Scripts\python experiments\x1_cross_paradigm_guttmann.py             # SSVEP/P300 session transfer (CPU, ~35 GB download)
+```
+
+Using the decoder directly:
+
+```python
+from src.pipeline import R11, fit_predict, load_subject_data
+
+data, n_classes = load_subject_data("IV-2a", subject=1)   # or "IV-2b"
+probs = fit_predict(data, n_classes, R11)["ensemble"]       # test-session class probabilities
 ```
 
 Synthetic ground-truth gates (`experiments/stage0_*.py`) need **no dataset download** and
@@ -272,9 +330,9 @@ applied before trusting any new number:
 
 ## Status
 
-**Established:** CSP+LDA + Riemannian alignment, 66.9% cross-session (IV-2a).
+**Classical baseline:** CSP+LDA + Riemannian alignment, 66.9% cross-session (IV-2a).
 
-**Best, provisional (pending external replication): the R11 ensemble.**
+**Best: the R11 ensemble, confirmed on the lockbox.**
 - It reaches 82.5% on IV-2a and 80.9% on IV-2b, and beats CSP+LDA+RA by +9.3 pp pooled.
 - It is one entry point, [`src/pipeline.py`](src/pipeline.py), and a full retrain through it
   reproduces R11 exactly.
@@ -311,6 +369,21 @@ non-inferior): about half the labels on IV-2a (288) and a third on IV-2b (~420).
 **half** the calibration session (100 of 200 trials) matches a single ShallowConvNet trained on all
 200 (84.6% vs 84.2%, non-inferior). With 144 trials it beats it (+2.7 pp). At every budget R11 beats
 a single CNN trained on the same trials, and at 48, 100 and 144 trials every subject improves.
+
+**Known limits:**
+- R11's alignment uses the whole unlabelled test session up front, so it is not yet usable live, one
+  trial at a time.
+- It costs 5 small GPU fits per user.
+- On IV-2a it is 2.3 pp below the best published leak-free result.
+- P300 transfer is untested, because of the dataset loader problem above.
+
+**Next, in order:**
+1. Faster training: all ensemble CNNs as one batched model, plus mixed precision.
+2. A different architecture (TCFormer / EEGNet / CTNet) as an ensemble member instead of extra
+   ShallowConvNet seeds. This is the most likely accuracy gain; it will be pre-registered and checked
+   on the lockbox.
+3. Causal (online) alignment, so the decoder works live.
+4. Optionally, a port of the recipe to the FALCON intracortical benchmark.
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on

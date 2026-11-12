@@ -11,9 +11,9 @@
 #   pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
 #
 # Deliberately absent, though present in the original working environment:
-#   braindecode - not needed to reproduce any result; it is a dev dependency (see
-#                requirements-dev.txt) used by one equivalence test and for model
-#                comparisons. It needs torchaudio built for the SAME torch version.
+#   braindecode - kept in requirements-dev.txt because it needs torchaudio built for
+#                the SAME torch version (see that file). It IS needed for R8 onward,
+#                including the R11 pipeline: FTSurrogate comes from braindecode.
 #   matplotlib  - never imported by any code here; moabb pulls it in via mne.
 
 mne==1.12.1
