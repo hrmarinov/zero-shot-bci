@@ -1051,3 +1051,67 @@ lockbox; opened once.
 - What would be worth trying next is not another screen on these 18 sessions. It would be an architecture
   trained with its own published recipe (epochs, schedule, augmentation), with a collapse check that uses
   training-session data only (e.g. inner cross-validation). Reported as an open item, not done.
+
+## C1 — causal (online) alignment: R11 can run live at no measurable cost (`experiments/c1_causal_alignment.py`)
+
+**What.** `PipelineConfig(alignment="causal")` (`src.pipeline.align_causal`).
+- **How a test trial is aligned:** trial *i* is whitened by the recursive Riemannian mean of trials 1..*i* of
+  its own test group, R_i = geodesic(R_{i−1}, C_i, 1/(w + i)).
+  - The current trial's unlabelled covariance is used; later trials never are.
+  - The mean is warm-started from the training session's Riemannian mean, counted as w = 10 pseudo-trials.
+- **Training trials** are aligned exactly as before, so all arms share R11's trained models.
+- **Default:** unchanged (transductive).
+
+**Protocol.** The code and tests were committed in `df1cdca` and the protocol in `e626066`, both before the
+first run.
+- **Arms**, all on the same 5 R11 networks and the same TS+LR fit; only the test-trial alignment differs:
+  - `trans`: R11 as cached;
+  - `causal`: w = 10;
+  - `static`: the training reference only, never updated;
+  - `cold`: w = 0.
+- **H1:** causal non-inferior to trans (one-sided 95% bootstrap bound > −1 pp).
+- **H2:** causal > static (sign-flip).
+- **Validity, all passed:**
+  - every retrained member's `trans` prediction equals its cached R11 prediction, so the models are R11's;
+  - TS+LR matches `tslr_member`;
+  - `trans` reproduces R11's recorded accuracy;
+  - the training rows are identical in every arm.
+- **GPU:** at or below 82 °C, with no throttling.
+
+| | trans | **causal** | static | cold |
+|---|---|---|---|---|
+| IV-2a | 82.45 | **82.06** | 78.94 | 81.56 |
+| IV-2b | 80.86 | **80.60** | 79.05 | 80.80 |
+| BNCI2015_001 (lockbox) | 87.88 | **87.79** | 81.88 | 87.58 |
+
+| Hypothesis | Development (18 subjects) | Lockbox (12 subjects) |
+|---|---|---|
+| **H1** causal − trans | −0.32 pp [95% CI −0.63, +0.01], 3 up / 12 down; lower bound −0.58 → **NON-INFERIOR** | −0.08 pp [−1.12, +1.25], 3 up / 8 down; lower bound −1.00, exactly at the margin → **not shown** |
+| **H2** causal − static | **+2.34 pp**, 12 up / 5 down, p = 0.005 → SUPPORTED | **+5.92 pp**, 10 up / 1 down, p = 0.001 → SUPPORTED |
+| cold − causal (reported) | −0.15 pp | −0.21 pp |
+
+**Accuracy over each test group's first N trials** (mean over subjects). `trans` is not a feasible live
+baseline: it already uses the future trials.
+
+| First N | Dev: trans | Dev: **causal** | Dev: static | Dev: cold | Lockbox: trans | Lockbox: **causal** | Lockbox: static | Lockbox: cold |
+|---|---|---|---|---|---|---|---|---|
+| 10 | 81.94 | **82.22** | 79.17 | 78.89 | 79.17 | **80.83** | 72.50 | 81.67 |
+| 20 | 82.64 | **82.92** | 81.53 | 81.39 | 81.25 | **82.08** | 75.83 | 83.75 |
+| 40 | 83.33 | **83.33** | 81.81 | 82.29 | 83.54 | **85.21** | 78.54 | 85.42 |
+| 80 | 83.19 | 82.81 | 81.46 | 82.15 | 86.35 | **87.19** | 80.94 | 86.98 |
+
+**Reading:**
+- **R11 runs live.** Going causal costs 0.3 pp on the development data, with non-inferiority shown, and
+  0.1 pp on the lockbox.
+  - The lockbox non-inferiority bound lands exactly on the pre-registered margin, so by the rule it is
+    *not shown*. The width comes from two subjects moving in opposite directions: s10 −3.5 and s11 +6.0.
+  - Read plainly: no loss, measured with too few subjects to prove it is under 1 pp.
+- **Updating the reference matters.** Never adapting to the test session (static) costs 2.3 pp on
+  development and 5.9 pp on the lockbox (11 of 12 subjects, s11 drops 22 pp). The trial-by-trial update
+  recovers essentially all of it.
+- **There is no warm-up penalty.** Over the first 10–40 trials causal is as good as, or better than,
+  transductive. The training-session prior matters early on the development data: cold start is 3.3 pp
+  worse over the first 10 trials there. On the lockbox, cold start does not lose early (81.67 vs 80.83
+  over the first 10).
+- **Practical recommendation:** for live use, `alignment="causal"` with the default w = 10. The
+  transductive default stays for offline evaluation, so all cached results reproduce.

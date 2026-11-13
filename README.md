@@ -381,9 +381,16 @@ lockbox did not confirm it: +0.8 pp, 6 of 12 up, p = 0.18, and no better than ad
 ShallowConvNet seeds. CTNet also collapsed to chance on one lockbox subject under our trainer. TCFormer is
 the best single model (+1.5 pp over ShallowConvNet) but did not help as a member.
 
+**Live use (C1): R11 now runs causally, trial by trial.** With `PipelineConfig(alignment="causal")` each
+test trial is aligned using only itself and earlier trials (a running Riemannian mean, warm-started from
+the training session).
+- **Cost:** 0.3 pp on IV-2a + IV-2b (non-inferior, pre-registered) and 0.1 pp on the lockbox. On the lockbox
+  the non-inferiority bound lands exactly on the −1 pp margin, so it is formally not shown.
+- **No warm-up penalty:** it is as accurate as the offline version from the first 10 trials.
+- **The update matters:** never updating the reference costs 2.3 pp (development) and 5.9 pp (lockbox).
+
 **Known limits:**
-- R11's alignment uses the whole unlabelled test session up front, so it is not yet usable live, one
-  trial at a time.
+- Live use is measured offline, trial by trial on recorded sessions; no closed-loop session has been run.
 - It costs 5 small GPU fits per user (about half a minute with `fast=True`).
 - On IV-2a it is 2.3 pp below the best published leak-free result.
 - P300 transfer is untested, because of the dataset loader problem above.
@@ -392,8 +399,10 @@ the best single model (+1.5 pp over ShallowConvNet) but did not help as a member
 1. ~~Faster training~~ done (F1); mixed precision gave no gain on this GPU.
 2. ~~A different architecture as an ensemble member~~ done (A1): passed the screen, not confirmed on
    the lockbox. A retry would need each architecture's own training recipe and a collapse check.
-3. Causal (online) alignment, so the decoder works live.
+3. ~~Causal (online) alignment~~ done (C1): R11 works live at no measurable cost.
 4. Optionally, a port of the recipe to the FALCON intracortical benchmark.
+5. A live (closed-loop) demo using `fast=True` + `alignment="causal"`; more lockbox subjects would settle
+   C1's non-inferiority bound.
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on

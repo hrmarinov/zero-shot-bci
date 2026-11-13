@@ -1251,6 +1251,12 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > -0.9 pp). On BNCI2015_001: +0.83 pp, 6/12 up, p = 0.18, and only +0.12 pp over the size-matched control;
 > CTNet collapsed to chance on lockbox s1 under our 300-epoch trainer. Open: an architecture trained with its
 > published recipe plus a training-session-only collapse check.
+>
+> **C1 causal alignment (2026-11-13): R11 runs live.** `alignment="causal"` (recursive Riemannian mean,
+> warm-started from the training mean, w = 10) costs -0.32 pp on IV-2a + IV-2b (non-inferior, bound -0.58)
+> and -0.08 pp on the lockbox (bound exactly at the -1 pp margin, so formally not shown). It beats a
+> never-updated reference by +2.3 pp (dev) and +5.9 pp (lockbox, 10/12 up) and has no warm-up penalty over
+> the first 10-40 trials. Open: a live demo loop; more lockbox subjects to settle the non-inferiority bound.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
