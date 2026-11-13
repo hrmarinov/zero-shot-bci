@@ -1115,3 +1115,34 @@ baseline: it already uses the future trials.
   over the first 10).
 - **Practical recommendation:** for live use, `alignment="causal"` with the default w = 10. The
   transductive default stays for offline evaluation, so all cached results reproduce.
+
+## Live decoder: R11 decoding one trial at a time (`src/live.py`, `experiments/live_replay_check.py`)
+
+**What.** `LiveDecoder.calibrate(X_cnn, X_tslr, y, groups, n_classes, cfg)` trains R11 once on the labelled
+calibration trials. Then:
+- `start_session()` resets both bands' running references to the training prior;
+- `decode(x_cnn, x_tslr)` returns per-family and ensemble probabilities for one trial.
+
+It is C1's causal alignment carried as state, and it supports `fast=True`. Band-pass filtering the
+incoming stream into the two inputs (4–38 Hz, 0–4 s, and 8–30 Hz, 0.5–2.5 s, at 250 Hz) is the caller's job.
+
+**Check** (engineering, no new science). Every recorded test session was replayed trial by trial in
+recording order, on the exact path; on IV-2b each test recording started a new session.
+- **V1 passed for all 18 subjects:** the live ensemble probabilities equal C1's causal R11, rebuilt from
+  its cached members plus causal TS+LR (max |Δp| < 1e-5), and the accuracy equals C1's exactly.
+
+| | Calibration (5 exact fits) | Decode latency per trial: median | 95th percentile | max |
+|---|---|---|---|---|
+| IV-2a | 130 s | 5.9 ms | 7.8 ms | 16.8 ms |
+| IV-2b | 53 s | 5.6 ms | 8.2 ms | 28.7 ms (one trial: 74 ms) |
+
+**Reading.**
+- A trial costs about 6 ms (alignment update, five networks and TS+LR) against a 4 s imagery window, so
+  decoding is not the bottleneck.
+- Calibration takes about 2 min on the exact path, or about 0.5 min with `fast=True` (F1).
+- **Not done:** a closed-loop session with real-time filtering and feedback.
+
+**Health guard.** During this run the GPU touched 83 °C for 3 of about 1,400 samples (15 s apart). This
+happened inside a fit, where the between-fit guard cannot act; there was no throttling. The guard now
+pauses at 80 °C and resumes below 72 °C (`src/gpu_health.py`). This adds wall time only; results are
+unaffected.

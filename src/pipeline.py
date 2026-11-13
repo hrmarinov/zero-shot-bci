@@ -171,12 +171,18 @@ def align_for(cfg: "PipelineConfig", data: SubjectData, X: np.ndarray) -> np.nda
     return align_by_group(X, data.groups)
 
 
+def fit_tslr(A_train: np.ndarray, y_train: np.ndarray) -> Callable[[np.ndarray], np.ndarray]:
+    """OAS covariance -> tangent space -> logistic regression (C = 1) fitted on aligned training trials;
+    returns ``predict_proba`` for aligned trials."""
+    cov = Covariances(estimator="oas")
+    ts = TangentSpace(metric="riemann").fit(cov.fit_transform(A_train))
+    lr = LogisticRegression(C=1.0, max_iter=5000).fit(ts.transform(cov.transform(A_train)), y_train)
+    return lambda A: lr.predict_proba(ts.transform(cov.transform(A)))
+
+
 def tslr_member(data: SubjectData, cfg: "PipelineConfig | None" = None) -> np.ndarray:
     A = align_by_group(data.X_tslr, data.groups) if cfg is None else align_for(cfg, data, data.X_tslr)
-    cov = Covariances(estimator="oas")
-    ts = TangentSpace(metric="riemann").fit(cov.fit_transform(A[data.train]))
-    Ft, Fe = ts.transform(cov.transform(A[data.train])), ts.transform(cov.transform(A[~data.train]))
-    return LogisticRegression(C=1.0, max_iter=5000).fit(Ft, data.y[data.train]).predict_proba(Fe)
+    return fit_tslr(A[data.train], data.y[data.train])(A[~data.train])
 
 
 def _cnn_tensors(data: SubjectData, A: np.ndarray, n_classes: int, cfg: PipelineConfig,

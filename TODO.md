@@ -1257,6 +1257,10 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > and -0.08 pp on the lockbox (bound exactly at the -1 pp margin, so formally not shown). It beats a
 > never-updated reference by +2.3 pp (dev) and +5.9 pp (lockbox, 10/12 up) and has no warm-up penalty over
 > the first 10-40 trials. Open: a live demo loop; more lockbox subjects to settle the non-inferiority bound.
+>
+> **Live decoder (2026-11-13):** `src/live.py` (calibrate once, decode trial by trial) reproduces C1's causal
+> R11 exactly on all 18 replayed sessions; ~6 ms per trial, ~2 min calibration (0.5 min with fast=True).
+> Open: a closed-loop session with real-time filtering. GPU guard tightened to pause at 80 C.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

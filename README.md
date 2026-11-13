@@ -403,8 +403,9 @@ the training session).
    the lockbox. A retry would need each architecture's own training recipe and a collapse check.
 3. ~~Causal (online) alignment~~ done (C1): R11 works live at no measurable cost.
 4. Optionally, a port of the recipe to the FALCON intracortical benchmark.
-5. A live (closed-loop) demo using `fast=True` + `alignment="causal"`; more lockbox subjects would settle
-   C1's non-inferiority bound.
+5. ~~A live decoder~~ done: [`src/live.py`](src/live.py) calibrates once, then decodes one trial in
+   ~6 ms, matching causal R11 exactly on all 18 recorded sessions. Not yet run closed-loop.
+6. Population-pretrained CNN members to cut the labelled calibration trials (P1, pre-registered).
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on
