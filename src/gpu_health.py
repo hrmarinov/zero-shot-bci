@@ -14,8 +14,8 @@ import subprocess
 import time
 from dataclasses import dataclass
 
-PAUSE_AT_C = 83
-RESUME_BELOW_C = 75
+PAUSE_AT_C = 80  # lowered from 83 (2026-11-13): fits run ~2 min unchecked and peaked at 83 C
+RESUME_BELOW_C = 72
 MAX_VRAM_MB = 7200
 MIN_FREE_RAM_GB = 1.5
 
