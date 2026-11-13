@@ -18,6 +18,8 @@ logistic regression, all on per-session Riemannian-aligned input.
   - 87.9%, against 84.2% for a single ShallowConvNet and 77.0% for CSP+LDA;
   - it needs only **half the labelled calibration trials** to match a single ShallowConvNet trained on
     the full session.
+- **Usable live:** with causal alignment it classifies each trial from that trial and earlier ones only,
+  at a cost of 0.1–0.3 pp, and its 5 networks train in about half a minute per user (IV-2a).
 - **Still required:** a (shorter) calibration session. The fully calibration-free alternatives are
   far behind and are documented as such.
 
