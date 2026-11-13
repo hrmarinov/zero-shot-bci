@@ -14,7 +14,8 @@ Named configurations (docs/diag_gates_d1_d4.md):
                                          Not yet confirmed; do not treat as selected.
 
 Alignment is fitted per group (IV-2a: per session; IV-2b: per recording) on that group's own trials,
-which uses the test session's unlabelled trials (transductive), exactly as R3-R14.
+which uses the test session's unlabelled trials (transductive), exactly as R3-R14. ``alignment="causal"``
+updates each test reference trial by trial from past trials only (align_causal), for live use.
 
 ``experiments/check_pipeline_reproduces_r11.py`` retrains R11 through this module and checks that every
 member equals the cached member predictions and every subject's accuracy equals R11's.
@@ -30,6 +31,8 @@ import numpy as np
 import torch
 from pyriemann.estimation import Covariances
 from pyriemann.tangentspace import TangentSpace
+from pyriemann.geometry.base import invsqrtm
+from pyriemann.geometry.geodesic import geodesic_riemann
 from pyriemann.geometry.mean import mean_riemann
 from sklearn.linear_model import LogisticRegression
 
@@ -42,6 +45,8 @@ from src.adaptation.stacked_convnet import (StackedShallowConvNet, dropout_rng_s
 CNN_BAND = dict(fmin=4.0, fmax=38.0, tmin=0.0, tmax=4.0)  # R3's WIDE input
 CNN_TRAIN = TrainConfig(epochs=300, batch_size=48, lr=1e-3, weight_decay=1e-3, max_shift=0)  # R3's CFG
 RA_SELF_CHECK_TOL = 1e-8
+CAUSAL_PRIOR_WEIGHT = 10.0  # training-session reference counts as this many test trials (fixed a priori, C1)
+ALIGNMENTS = ("transductive", "causal")
 
 
 @dataclass(frozen=True)
@@ -51,7 +56,11 @@ class PipelineConfig:
 
     ``fast`` trains all CNN members of a subject as one stacked model (src/adaptation/stacked_convnet.py):
     same seeds, initial weights, batch orders, dropout masks and augmentation draws, ~4x faster, but not
-    bit-identical (float rounding; measured in docs/diag_gates_d1_d4.md, F1). Off by default."""
+    bit-identical (float rounding; measured in docs/diag_gates_d1_d4.md, F1). Off by default.
+
+    ``alignment``: "transductive" (default, R11) fits each test group's reference on all its trials up front;
+    "causal" updates it trial by trial from the current and past trials only (:func:`align_causal`), so the
+    decoder can run live. Training trials are aligned identically in both modes."""
 
     n_cnn: int = 3
     n_fts: int = 2
@@ -59,8 +68,14 @@ class PipelineConfig:
     one_hot_targets: bool = False
     train: TrainConfig = field(default_factory=lambda: CNN_TRAIN)
     fast: bool = False
+    alignment: str = "transductive"
+    causal_prior_weight: float = CAUSAL_PRIOR_WEIGHT
 
     def __post_init__(self) -> None:
+        if self.alignment not in ALIGNMENTS:
+            raise ValueError(f"alignment must be one of {ALIGNMENTS}")
+        if self.causal_prior_weight < 0:
+            raise ValueError("causal_prior_weight must be >= 0")
         if self.n_cnn < 0 or self.n_fts < 0:
             raise ValueError("member counts must be >= 0")
         if self.n_cnn == 0 and self.n_fts == 0 and not self.use_tslr:
@@ -107,8 +122,57 @@ def align_by_group(X: np.ndarray, groups: np.ndarray) -> np.ndarray:
     return out
 
 
-def tslr_member(data: SubjectData) -> np.ndarray:
-    A = align_by_group(data.X_tslr, data.groups)
+def causal_references(covs: np.ndarray, prior: np.ndarray, prior_weight: float) -> np.ndarray:
+    """Running Riemannian mean of a trial stream, one reference per trial, using that trial and the past only.
+
+    Recursive (incremental) Riemannian mean: R_i = geodesic(R_{i-1}, C_i, 1 / (prior_weight + i)), i = 1, 2, ...
+    starting from ``prior`` (R_0) counted as ``prior_weight`` pseudo-trials. prior_weight = 0: R_1 = C_1 and,
+    for two trials, R_2 is their exact Riemannian mean; prior_weight = inf: R_i = prior (no test adaptation).
+    """
+    if prior_weight < 0:
+        raise ValueError("prior_weight must be >= 0")
+    refs = np.empty_like(covs)
+    R = prior
+    for i, C in enumerate(covs, start=1):
+        if np.isfinite(prior_weight):
+            R = geodesic_riemann(R, C, 1.0 / (prior_weight + i))
+        refs[i - 1] = R
+    return refs
+
+
+def align_causal(X: np.ndarray, groups: np.ndarray, train: np.ndarray, prior_weight: float = CAUSAL_PRIOR_WEIGHT,
+                 estimator: str = "oas") -> np.ndarray:
+    """Online Riemannian alignment: test trials are whitened using only the current and past trials.
+
+    Training groups are aligned exactly as :func:`align_by_group` (the whole training session is available
+    before the test session starts). Each test group is processed in recording order: trial i is whitened by
+    the running Riemannian mean of its group's trials 1..i (:func:`causal_references`), warm-started from the
+    Riemannian mean of all training-trial covariances with weight ``prior_weight`` pseudo-trials. No later
+    trial ever influences an earlier one, and no labels are used.
+    """
+    train = np.asarray(train, bool)
+    out = np.empty_like(X)
+    out[train] = align_by_group(X[train], groups[train])
+    cov = Covariances(estimator=estimator)
+    prior = mean_riemann(cov.fit_transform(X[train]))
+    test_groups = list(dict.fromkeys(groups[~train]))  # first-appearance order
+    for g in test_groups:
+        idx = np.flatnonzero((groups == g) & ~train)
+        refs = causal_references(cov.transform(X[idx]), prior, prior_weight)
+        for i, R in zip(idx, refs):
+            out[i] = invsqrtm(R) @ X[i]
+    return out
+
+
+def align_for(cfg: "PipelineConfig", data: SubjectData, X: np.ndarray) -> np.ndarray:
+    """The configured alignment of one input band (training rows are identical under both modes)."""
+    if cfg.alignment == "causal":
+        return align_causal(X, data.groups, data.train, cfg.causal_prior_weight)
+    return align_by_group(X, data.groups)
+
+
+def tslr_member(data: SubjectData, cfg: "PipelineConfig | None" = None) -> np.ndarray:
+    A = align_by_group(data.X_tslr, data.groups) if cfg is None else align_for(cfg, data, data.X_tslr)
     cov = Covariances(estimator="oas")
     ts = TangentSpace(metric="riemann").fit(cov.fit_transform(A[data.train]))
     Ft, Fe = ts.transform(cov.transform(A[data.train])), ts.transform(cov.transform(A[~data.train]))
@@ -126,14 +190,21 @@ def _cnn_tensors(data: SubjectData, A: np.ndarray, n_classes: int, cfg: Pipeline
 
 
 def cnn_member(data: SubjectData, A: np.ndarray, n_classes: int, seed: int, augmentation: str | None,
-               cfg: PipelineConfig, device: torch.device) -> np.ndarray:
-    """One ShallowConvNet on the aligned CNN input ``A``, built after seeding (bit-exact reruns)."""
+               cfg: PipelineConfig, device: torch.device,
+               extra_tests: dict[str, np.ndarray] | None = None) -> np.ndarray | dict[str, np.ndarray]:
+    """One ShallowConvNet on the aligned CNN input ``A``, built after seeding (bit-exact reruns).
+
+    Returns the test-trial probabilities. With ``extra_tests`` ({name: test-trial input}), the same trained
+    model also predicts each extra input, and a dict {"test": ..., **names: ...} is returned."""
     Xt, Xe, target = _cnn_tensors(data, A, n_classes, cfg, device)
     set_deterministic(seed)
     augment = None if augmentation is None else make_augmentation(augmentation, seed)
     model = ShallowConvNet(A.shape[1], n_classes, A.shape[2]).to(device)
     model = train_model(model, Xt, target, cfg.train, seed=seed, augment=augment)
     probs = predict_proba(model, Xe)
+    if extra_tests is not None:
+        probs = {"test": probs, **{k: predict_proba(model, torch.as_tensor(v.astype(np.float32), device=device))
+                                   for k, v in extra_tests.items()}}
     del model
     if device.type == "cuda":
         torch.cuda.empty_cache()
@@ -176,12 +247,12 @@ def fit_predict(data: SubjectData, n_classes: int, cfg: PipelineConfig = R11,
                 before_fit: Callable[[], None] | None = None) -> dict[str, np.ndarray]:
     """Fit every member on the training trials; return test-trial probabilities per family and 'ensemble'.
 
-    ``cache_dir`` stores each CNN member's probabilities (``{family}_seed{k}.npy``) so an interrupted
+    ``cache_dir`` stores each CNN member's probabilities (``{family}_seed{k}[_fast][_causal].npy``) so an interrupted
     run resumes; ``before_fit`` runs before each GPU fit (e.g. src.gpu_health.wait_until_healthy).
     """
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     aligned: list[np.ndarray] = []  # CNN input, aligned once on first use
-    suffix = "_fast" if cfg.fast else ""  # fast members never mix with the exact cache
+    suffix = ("_fast" if cfg.fast else "") + ("_causal" if cfg.alignment == "causal" else "")  # never mix caches
     specs = [("cnn", k, None) for k in range(cfg.n_cnn)] + [("fts", k, "ftsurrogate") for k in range(cfg.n_fts)]
 
     def cache_path(family: str, seed: int) -> Path | None:
@@ -193,7 +264,7 @@ def fit_predict(data: SubjectData, n_classes: int, cfg: PipelineConfig = R11,
         if todo:
             if before_fit is not None:
                 before_fit()
-            A = align_by_group(data.X_cnn, data.groups)
+            A = align_for(cfg, data, data.X_cnn)
             probs = cnn_members_stacked(data, A, n_classes, [(k, aug) for _, k, aug in todo], cfg, device)
             for (fam, k, _), p in zip(todo, probs):
                 stacked[(fam, k)] = p
@@ -210,7 +281,7 @@ def fit_predict(data: SubjectData, n_classes: int, cfg: PipelineConfig = R11,
         if before_fit is not None:
             before_fit()
         if not aligned:
-            aligned.append(align_by_group(data.X_cnn, data.groups))
+            aligned.append(align_for(cfg, data, data.X_cnn))
         p = cnn_member(data, aligned[0], n_classes, seed, aug, cfg, device)
         if path is not None:
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -221,7 +292,7 @@ def fit_predict(data: SubjectData, n_classes: int, cfg: PipelineConfig = R11,
     if cfg.n_cnn:
         families["cnn"] = np.mean([member("cnn", k, None) for k in range(cfg.n_cnn)], axis=0)
     if cfg.use_tslr:
-        families["tslr"] = tslr_member(data)
+        families["tslr"] = tslr_member(data, cfg)
     if cfg.n_fts:
         families["fts"] = np.mean([member("fts", k, "ftsurrogate") for k in range(cfg.n_fts)], axis=0)
     return {**families, "ensemble": combine(families)}
