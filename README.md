@@ -375,6 +375,12 @@ model. Accuracy is unchanged on all 18 subjects (0.00 pp; 99.99% of member predi
 is 4.1× faster on IV-2a (2.2 → 0.5 min per user). IV-2b, with 3 channels, gains only 1.15×. The default
 stays the exact path, so every cached result still reproduces.
 
+**A different architecture as a member (A1): not confirmed, R11 stays.** Adding two CTNet seeds as a
+fourth family passed the pre-registered development screen (+0.9 pp over R11, 14 of 18 subjects up). The
+lockbox did not confirm it: +0.8 pp, 6 of 12 up, p = 0.18, and no better than adding two more
+ShallowConvNet seeds. CTNet also collapsed to chance on one lockbox subject under our trainer. TCFormer is
+the best single model (+1.5 pp over ShallowConvNet) but did not help as a member.
+
 **Known limits:**
 - R11's alignment uses the whole unlabelled test session up front, so it is not yet usable live, one
   trial at a time.
@@ -384,9 +390,8 @@ stays the exact path, so every cached result still reproduces.
 
 **Next, in order:**
 1. ~~Faster training~~ done (F1); mixed precision gave no gain on this GPU.
-2. A different architecture (TCFormer / EEGNet / CTNet) as an ensemble member instead of extra
-   ShallowConvNet seeds. This is the most likely accuracy gain; it will be pre-registered and checked
-   on the lockbox.
+2. ~~A different architecture as an ensemble member~~ done (A1): passed the screen, not confirmed on
+   the lockbox. A retry would need each architecture's own training recipe and a collapse check.
 3. Causal (online) alignment, so the decoder works live.
 4. Optionally, a port of the recipe to the FALCON intracortical benchmark.
 

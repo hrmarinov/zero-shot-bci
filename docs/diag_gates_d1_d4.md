@@ -975,3 +975,79 @@ protocol and numbers are unchanged.
   IV-2b subject 1 from 39 s to 36 s.
 - A further ~2× on IV-2b would need a GPU-side FTSurrogate reimplementation that reproduces braindecode's
   numpy draws. That is not worth it at 36 s per subject.
+
+## A1 — an architecture-diverse member: CTNet passes the screen, NOT CONFIRMED on the lockbox (`experiments/a1_arch_member_screen.py`, `experiments/a1l_lockbox_ctnet.py`)
+
+**Choice of architectures** (braindecode 1.7.0; timed per fit on IV-2a-shaped data with our trainer):
+
+| Architecture | Minutes per fit | Decision |
+|---|---|---|
+| ShallowConvNet (reference) | 0.5 | — |
+| EEGNet | 0.7 | not chosen: weaker standalone on cross-session IV-2a, so a weak member |
+| CTNet (CNN + transformer) | 0.9 | **chosen:** cheap, and architecturally far from ShallowConvNet |
+| EEGConformer | 2.5 | not chosen: cost |
+| TCFormer (best leak-free published IV-2a result, 84.8%) | 4.8 | **chosen:** the most likely to add accuracy |
+| ATCNet | 6.7 | not chosen: cost, it alone would exceed the GPU budget |
+
+**Screen.** Pre-registered and committed (`299f8be`) before the run, with a 2-epoch smoke run showing nothing scored.
+- **Setup:** R11's settings exactly (per-group RA, 4–38 Hz, 0–4 s, 250 Hz, R3 CFG, 300 epochs, braindecode
+  defaults). Seeds 0–1 for each architecture.
+- **Arms:**
+  - `aug_*` = (CNN3 + TS+LR + FTS2 + X2) / 4, a fourth family added;
+  - `rep_*` = (CNN1 + TS+LR + FTS2 + X2) / 4, the same 5 network fits as R11.
+- **Control:** `ctrl` = R11 plus base CNN seeds 3–4 as the fourth family.
+- **Gate:** as R10–R13, with Holm over the 4 arms.
+- **Validity, all passed:**
+  - R11 is reproduced exactly from the cached members;
+  - both architectures rerun bit-identically (V3);
+  - the 3.5 h of GPU stayed at or below 82 °C, with no throttling.
+
+| Dataset | R11 | ctrl | **aug_ctn** | aug_tcf | rep_ctn | rep_tcf | single: Shallow / CTNet / TCFormer |
+|---|---|---|---|---|---|---|---|
+| IV-2a | 82.45 | 81.25 | **83.06** | 81.52 | 81.98 | 80.94 | 75.21 / 71.51 / 74.54 |
+| IV-2b | 80.86 | 80.38 | **82.01** | 82.93 | 82.28 | 82.36 | 78.58 / 80.80 / 82.26 |
+
+| Contrast | Pooled | Up / down | p (Holm) | IV-2a | IV-2b | Verdict |
+|---|---|---|---|---|---|---|
+| **aug_ctn − R11** | **+0.89 pp** | 14 / 4 | 0.011 (0.045) | +0.62 | +1.16 | **PASS → winner** |
+| aug_tcf − R11 | +0.57 pp | 11 / 7 | 0.13 (0.39) | −0.93 | +2.07 | fail |
+| rep_ctn − R11 | +0.48 pp | 11 / 7 | 0.15 (0.39) | −0.46 | +1.42 | fail |
+| rep_tcf − R11 | −0.00 pp | 7 / 8 | 0.50 (0.50) | −1.50 | +1.50 | fail |
+| aug_ctn − ctrl (diversity) | +1.72 pp | 15 / 1 | < 0.001 | +1.81 | +1.63 | reported |
+| aug_tcf − ctrl | +1.41 pp | 12 / 3 | 0.002 | +0.27 | +2.55 | reported |
+| ctrl − R11 (member count) | −0.84 pp | 5 / 13 | 0.996 | −1.20 | −0.47 | more base seeds hurt |
+
+TCFormer is the best single model here (+1.5 pp over ShallowConvNet, 14 of 18 up), but as a member it helps
+only on IV-2b. CTNet is weaker alone (−0.7 pp) but the more useful member: its errors differ more.
+
+**Lockbox (A1L, BNCI2015_001).** Pre-registered and committed (`3b9625e`) before any CTNet fit on the
+lockbox; opened once.
+- **Setup:** L1's data path and cached members, with CTNet seeds 0–1 trained as in A1.
+- **Primary (H1):** aug_ctn − R11 > 0.
+- **Validity:** V1 passed (R11 reproduces L1 for all 12 subjects).
+
+| Arm | Accuracy |
+|---|---|
+| Single ShallowConvNet (5-seed mean) | 84.19 |
+| CTNet alone (2-seed mean) | 79.62 |
+| R11 | 87.88 |
+| ctrl (R11 + 2 base seeds) | 88.58 |
+| aug_ctn (R11 + CTNet ×2) | 88.71 |
+
+| Hypothesis | Mean [95% CI] | Up / down | p | Verdict |
+|---|---|---|---|---|
+| **H1 aug_ctn − R11** | +0.83 pp [−0.50, +2.42] | 6 / 4 | 0.18 | **NOT CONFIRMED** |
+| H2 aug_ctn − ctrl | +0.12 pp [−1.25, +1.54] | 5 / 5 | 0.46 | no diversity gain |
+
+**Reading:**
+- The lockbox effect has the same size as the screen's (+0.83 vs +0.89 pp), but with 12 subjects it is not
+  significant.
+- Its source does not replicate. On the lockbox, two more ShallowConvNet seeds give nearly the same gain
+  (ctrl +0.70 pp over R11), so here the extra family acts as member count, not architecture diversity.
+- **CTNet is unreliable under our fixed trainer.** On lockbox subject 1 both seeds collapsed to chance
+  (50.0%, against 99.1% for ShallowConvNet); the ensemble absorbed it (98.0 vs 99.0). Its subject-10 and
+  subject-11 fits are also 9 pp below ShallowConvNet. A member that can silently fail is a poor default.
+- **Decision (pre-registered): R11 stays the pipeline.** No configuration is added to `src/pipeline.py`.
+- What would be worth trying next is not another screen on these 18 sessions. It would be an architecture
+  trained with its own published recipe (epochs, schedule, augmentation), with a collapse check that uses
+  training-session data only (e.g. inner cross-validation). Reported as an open item, not done.

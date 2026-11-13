@@ -1244,6 +1244,13 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > argmax agreement 99.99%, max |dp| 0.005); 4.1x faster on IV-2a (2.2 -> 0.5 min/subject), 1.15x on IV-2b
 > (3 channels: already overhead-bound). Default stays exact. AMP gave nothing; torch.compile has no triton
 > on Windows. Open: IV-2b's remaining cost is braindecode FTSurrogate's per-call host syncs.
+>
+> **A1 architecture member (2026-11-13): screen PASS, lockbox NOT CONFIRMED; R11 stays.** R11 + a CTNet
+> family (2 seeds, weight 1/4) passed the dev screen (+0.89 pp, 14/18 up, Holm p = 0.045; +1.72 pp over a
+> size-matched ShallowConvNet control). TCFormer (best single model, +1.5 pp) failed as a member (IV-2a
+> -0.9 pp). On BNCI2015_001: +0.83 pp, 6/12 up, p = 0.18, and only +0.12 pp over the size-matched control;
+> CTNet collapsed to chance on lockbox s1 under our 300-epoch trainer. Open: an architecture trained with its
+> published recipe plus a training-session-only collapse check.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 
