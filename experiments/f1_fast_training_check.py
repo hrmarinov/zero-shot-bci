@@ -122,7 +122,7 @@ def summarise(df: pd.DataFrame) -> None:
         per = ", ".join(f"{ds} {d[df.dataset == ds].mean():+.2f}" for ds in sorted(df.dataset.unique()))
         print(f"    {name:8s}: pooled {d.mean():+.2f} (mean |d| {d.abs().mean():.2f}, max |d| {d.abs().max():.2f}, "
               f"{(d > 0).sum()} up / {(d < 0).sum()} down, two-sided p = "
-              f"{min(1.0, 2 * min(sign_flip_permutation_test(d.to_numpy(), 'greater'), sign_flip_permutation_test(d.to_numpy(), 'less'))):.3f}); {per}")
+              f"{sign_flip_permutation_test(d.to_numpy(), 'two-sided'):.3f}); {per}")
     member_d = pd.concat([100 * (df[f"{f}{k}_fast"] - df[f"{f}{k}_exact"]) for f, k in MEMBERS])
     seed_noise = (100 * (df["cnn0_exact"] - df["cnn1_exact"])).abs()
     print(f"    single member mean |d|: {member_d.abs().mean():.2f} pp; reference seed 0 vs seed 1 mean |d|: "
