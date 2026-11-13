@@ -1146,3 +1146,62 @@ recording order, on the exact path; on IV-2b each test recording started a new s
 happened inside a fit, where the between-fit guard cannot act; there was no throttling. The guard now
 pauses at 80 °C and resumes below 72 °C (`src/gpu_health.py`). This adds wall time only; results are
 unaffected.
+
+## P1 — population-pretrained CNN members cut the calibration burden; CONFIRMED on the lockbox (`experiments/p1_pretrain_burden.py`)
+
+**Question** (TODO A23). R11 needs about 144 labelled trials to match a single CNN on the full session
+(B1, L2). Do its CNN members need fewer of the new user's trials if they start from weights pretrained on
+other subjects?
+
+**Protocol.** Pre-registered and committed (`211d327`) before the first run.
+- **Fix during the run:** `c28011c` freed host memory between fits after the run hit the free-RAM guard.
+  The protocol was unchanged and the run resumed from cache.
+- **Pretraining for target subject *s*:**
+  - the training sessions only of the *other* subjects of the same dataset, each aligned on its own trials;
+  - nobody's evaluation session is used, and no computation aligns or compares two subjects;
+  - R11's 5 ShallowConvNets, trained with the stacked fast path for 100 epochs.
+- **Fine-tuning:** 100 epochs on the target's drawn trials.
+- **TS+LR and draws:** exactly B1's (IV-2a/2b) and L2's (lockbox). The comparators are B1/L2's cached R11.
+- **Validity, all passed:**
+  - V2: every comparator reproduces its CSV for every draw;
+  - V3: the target is never in its own pool;
+  - V4: fine-tuning starts from the pretrained weights.
+- **Machine health:** free RAM stayed at or above 3.7 GB. GPU temperature was logged for the lockbox run
+  (at or below 77 °C, no throttling) but not for the development run (the logger had died; the 80 °C
+  pause guard was active).
+
+| Labelled trials | IV-2a: R11 → R11-PT | IV-2b: R11 → R11-PT | Lockbox: R11 → R11-PT |
+|---|---|---|---|
+| 0 (zero-shot: pretrained CNNs only) | — → 54.55 | — → 76.97 | — → 64.92 |
+| 48 | 63.50 → **69.10** | 76.25 → **78.26** | 82.03 → **85.17** |
+| 96 (lockbox 100) | 71.30 → **74.00** | 78.15 → **79.50** | 84.56 → **86.75** |
+| 144 | 75.68 → 75.85 | 79.27 → 80.64 | 86.83 → 87.64 |
+| FULL | 82.45 → 80.98 | 80.86 → 81.17 | 87.88 → 88.21 |
+
+| Hypothesis (R11-PT − R11) | Development, 18 subjects | Lockbox, 12 subjects |
+|---|---|---|
+| **H1, 48 trials** | **+3.80 pp**, 16 up / 2 down, Holm p = 0.0001; IV-2a +5.59, IV-2b +2.00 → PASS | **+3.14 pp**, 10 up / 2 down, Holm p = 0.004 → **CONFIRMED** |
+| **H2, 96 / 100 trials** | **+2.03 pp**, 13 up / 4 down, Holm p = 0.005; IV-2a +2.70, IV-2b +1.35 → PASS | **+2.19 pp**, 11 up / 1 down, Holm p = 0.004 → **CONFIRMED** |
+| R11-PT at *n* vs a single CNN at FULL (parity, margin −1 pp) | 96: −0.14 (lower bound −1.71), not shown; **144: +1.35 (+0.25), non-inferior** | **48: +0.99 (lower bound −0.07), non-inferior**; 100: +2.57 (+1.17) |
+
+**Reading:**
+- **Pretraining moves the calibration curve left, and the gain is largest when labels are scarcest.**
+  - It adds +3–4 pp at 48 trials and +2 pp at about 100.
+  - It adds little at 144, and it does not help with the full session (IV-2a −1.5 pp).
+  - So it is a tool for short calibration, not a replacement for R11 trained on a full session.
+- **Burden, on the lockbox:** with pretraining, **48 labelled trials (a quarter of the session)** match a
+  single ShallowConvNet trained on all 200. That was L2's 100 trials without pretraining.
+  - On IV-2a/2b the parity point is 144 trials. It was already 144 without pretraining (B1), so there it
+    only clears the margin more comfortably (+1.35 vs +0.59 pp).
+  - At 96 trials the mean already sits at parity (−0.14 pp), but the bound fails.
+- **Single CNNs gain much more than the ensemble** (+8.8 pp at 48 on development). Pretraining mainly
+  repairs the CNN members, which were the weak part of R11 at low budgets.
+- **Zero-shot, with no calibration at all:** 77.0% on IV-2b, 64.9% on the lockbox (both 2-class) and
+  54.6% on IV-2a (4-class).
+  - This is the project's first calibration-free result well above chance.
+  - It varies widely by subject: 29–73% on IV-2a, 50–84% on the lockbox.
+  - It is far below calibrated R11, so a short calibration stays necessary.
+- **Rule check:** pooling other subjects into one supervised loss, each self-aligned, works. Unlike the
+  failed population methods, no computation aligns or compares two subjects' covariances. This fits the
+  project's finding.
+- **Not yet done:** pretraining is not yet an option in `src/pipeline.py` or `src/live.py`.

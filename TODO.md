@@ -1261,6 +1261,13 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > **Live decoder (2026-11-13):** `src/live.py` (calibrate once, decode trial by trial) reproduces C1's causal
 > R11 exactly on all 18 replayed sessions; ~6 ms per trial, ~2 min calibration (0.5 min with fast=True).
 > Open: a closed-loop session with real-time filtering. GPU guard tightened to pause at 80 C.
+>
+> **P1 pretraining (2026-11-13): CONFIRMED on the lockbox.** R11's CNNs pretrained on the other subjects'
+> training sessions (self-aligned, pooled loss) then fine-tuned: +3.8 pp at 48 trials and +2.0 pp at 96 on
+> IV-2a + IV-2b (16/18 and 13/18 up); lockbox +3.1 pp at 48 and +2.2 pp at 100 (10/12, 11/12 up). On the
+> lockbox 48 of 200 labelled trials now match a single CNN on all 200 (was 100). No gain at FULL (IV-2a
+> -1.5 pp). Zero-shot: 77.0% IV-2b, 64.9% lockbox, 54.6% IV-2a. Open: make pretraining an option in
+> src/pipeline.py and src/live.py; A23 is done.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

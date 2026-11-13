@@ -17,7 +17,8 @@ logistic regression, all on per-session Riemannian-aligned input.
 - **On an untouched lockbox dataset** (BNCI2015_001, opened once under pre-registration):
   - 87.9%, against 84.2% for a single ShallowConvNet and 77.0% for CSP+LDA;
   - it needs only **half the labelled calibration trials** to match a single ShallowConvNet trained on
-    the full session.
+    the full session;
+  - with its CNNs **pretrained on other subjects**, only **a quarter** (48 of 200 trials) is needed.
 - **Usable live:** with causal alignment it classifies each trial from that trial and earlier ones only,
   at a cost of 0.1–0.3 pp, and its 5 networks train in about half a minute per user (IV-2a).
 - **Still required:** a (shorter) calibration session. The fully calibration-free alternatives are
@@ -372,6 +373,16 @@ non-inferior): about half the labels on IV-2a (288) and a third on IV-2b (~420).
 200 (84.6% vs 84.2%, non-inferior). With 144 trials it beats it (+2.7 pp). At every budget R11 beats
 a single CNN trained on the same trials, and at 48, 100 and 144 trials every subject improves.
 
+**Population pretraining cuts calibration further (P1), confirmed on the lockbox.** R11's networks are
+first trained on other subjects' training sessions, each aligned on its own data, then fine-tuned on the
+new user's few labelled trials.
+- **Development data:** +3.8 pp at 48 trials and +2.0 pp at 96 (16 and 13 of 18 subjects up).
+- **Lockbox:** +3.1 pp at 48 and +2.2 pp at 100 (10 and 11 of 12 up). **48 labelled trials now match a
+  single CNN trained on all 200.**
+- **No gain with the full session** (IV-2a −1.5 pp), so it is for short calibrations.
+- **With no calibration at all,** the pretrained networks reach 77% on IV-2b and 65% on the lockbox (both
+  2-class) and 55% on IV-2a (4-class), with wide variation between subjects.
+
 **Faster training (F1).** `PipelineConfig(fast=True)` trains R11's five ShallowConvNets as one stacked
 model. Accuracy is unchanged on all 18 subjects (0.00 pp; 99.99% of member predictions identical), and it
 is 4.1× faster on IV-2a (2.2 → 0.5 min per user). IV-2b, with 3 channels, gains only 1.15×. The default
@@ -405,7 +416,8 @@ the training session).
 4. Optionally, a port of the recipe to the FALCON intracortical benchmark.
 5. ~~A live decoder~~ done: [`src/live.py`](src/live.py) calibrates once, then decodes one trial in
    ~6 ms, matching causal R11 exactly on all 18 recorded sessions. Not yet run closed-loop.
-6. Population-pretrained CNN members to cut the labelled calibration trials (P1, pre-registered).
+6. ~~Population-pretrained CNN members~~ done (P1): confirmed, 48 labelled trials suffice on the lockbox.
+7. Make pretraining an option in `src/pipeline.py` and the live decoder.
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on
