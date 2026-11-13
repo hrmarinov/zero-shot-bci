@@ -63,6 +63,8 @@ from src.perf import setup_threads  # noqa: E402
 
 setup_threads(8)
 
+import gc  # noqa: E402
+
 import mne  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
@@ -123,6 +125,7 @@ def pretrain(pool_X: np.ndarray, pool_y: np.ndarray, n_classes: int, one_hot: bo
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(out, path)
     del model, X
+    gc.collect()
     torch.cuda.empty_cache()
     return out
 
@@ -144,7 +147,8 @@ def predict_members(init: list[dict], data: SubjectData, n_classes: int, one_hot
     cache.mkdir(parents=True, exist_ok=True)
     for p, path in zip(probs, paths):
         np.save(path, p)
-    del model
+    del model, A
+    gc.collect()
     torch.cuda.empty_cache()
     return probs
 
@@ -218,6 +222,8 @@ def run_dev(device) -> pd.DataFrame:
             rows += new
             print(f"  {ds} s{s}: zero-shot {100 * new[0]['zs']:.2f} | " + " ".join(
                 f"n{r['budget']}d{r['draw']} {100 * r['r11']:.1f}->{100 * r['r11pt']:.1f}" for r in new[1:5]), flush=True)
+            del data, new
+            gc.collect()
         del pools
     return pd.DataFrame(rows)
 
