@@ -173,9 +173,10 @@ def train_stacked(
     for _ in range(cfg.epochs):
         per_member = [make_batches(X.shape[0], None, cfg.batch_size, g) for g in gens]
         for step in zip(*per_member):
-            idx = [torch.as_tensor(b, device=X.device) for b in step]
-            xb = torch.stack([X[i] if a is None else a(X[i]) for i, a in zip(idx, augments)])
-            yb = torch.stack([y[i] for i in idx])  # (K, B) or (K, B, n_classes)
+            idx = torch.as_tensor(np.stack(step), device=X.device)  # (K, B): one host-to-device copy per step
+            xb, yb = X[idx], y[idx]  # (K, B, C, T); (K, B) or (K, B, n_classes)
+            if any(a is not None for a in augments):
+                xb = torch.stack([xb[i] if a is None else a(xb[i]) for i, a in enumerate(augments)])
             logits = model(xb)
             loss = F.cross_entropy(logits.flatten(0, 1), yb.flatten(0, 1), reduction="none")
             opt.zero_grad(set_to_none=True)
