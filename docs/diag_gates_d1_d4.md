@@ -930,3 +930,48 @@ Over CSP+LDA+RA the gain is +6.2 to +10.9 pp.
 - **Combined with L1, the project's two headline claims both hold on an untouched dataset:**
   1. R11 beats a single CNN (+3.7 pp) and CSP+LDA+RA (+10.9 pp).
   2. R11 halves the calibration trials needed to reach single-CNN accuracy.
+
+## F1 — faster training: R11's CNNs as one stacked model, same accuracy (`experiments/f1_fast_training_check.py`)
+
+**What.** `PipelineConfig(fast=True)` (`src/adaptation/stacked_convnet.py`) trains all five R11
+ShallowConvNets of a subject (base seeds 0–2, FTSurrogate seeds 0–1) as one stacked model.
+- **Kept identical by construction:** each member's initial weights (built after `set_deterministic(seed)`),
+  batch order, dropout masks (each member's own RNG stream is swapped in around its dropout call),
+  FTSurrogate draws, AdamW/cosine schedule (element-wise, so one optimiser over stacked parameters is five
+  independent ones) and loss (sum of the members' mean losses, so gradients never mix).
+- **Changed:** the temporal and spatial convolutions run as one combined kernel through a grouped
+  `conv1d` (the same linear map, summed in another order), and the matrix products are batched over
+  members. So the result is not bit-identical; it differs by float rounding.
+- **Measured and dropped:** bf16 autocast (no speed gain). `torch.compile` is unavailable (no triton on
+  Windows).
+- The default path is unchanged and still exact.
+
+**Check.** Pre-registered and committed (`fba1c36`) before the run. Every subject was retrained both ways
+into a fresh cache. A crash in the summary's p-value call after all fits was fixed in `e74a9c0`; the
+protocol and numbers are unchanged.
+- **V1 passed:** the exact retrain reproduces every cached R3/R7/R8/R9 member (identical argmax,
+  max |Δp| < 1e-5) and R11's recorded accuracy for all 18 subjects. So the refactored default path still
+  reproduces R11.
+
+| | Exact (min/subject) | Fast (min/subject) | Speedup |
+|---|---|---|---|
+| IV-2a (22 ch) | 2.16 | 0.53 | **4.09×** |
+| IV-2b (3 ch) | 0.74 | 0.64 | 1.15× |
+| All 18 subjects | 26.7 min total | 10.8 min total | 2.48× |
+
+| Fast − exact | Result |
+|---|---|
+| Member argmax agreement | 99.99% mean, 99.65% minimum |
+| Max \|Δp\| per member | median 0.000, max 0.005 |
+| Accuracy, every member, CNN3, FTS2 and R11 | **0.00 pp on every subject** (R11 81.65% both ways) |
+| For scale: base seed 0 vs seed 1 | 1.54 pp mean \|Δ\| |
+
+**Reading.**
+- The fast path changes no accuracy on these data. By the pre-registered rule it is **recommended for
+  screens**. The default stays exact, so every cached result keeps reproducing.
+- IV-2b gains little because with 3 channels the exact fits are already cheap. The remaining per-step cost is host
+  synchronisation inside braindecode's FTSurrogate and many tiny kernels, not arithmetic. A later
+  `perf` commit (`d2689f4`, one index transfer per step) is bit-identical to the F1 fast cache and takes
+  IV-2b subject 1 from 39 s to 36 s.
+- A further ~2× on IV-2b would need a GPU-side FTSurrogate reimplementation that reproduces braindecode's
+  numpy draws. That is not worth it at 36 s per subject.

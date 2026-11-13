@@ -1238,6 +1238,12 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > **L2 (2026-11-06): burden claim CONFIRMED on the lockbox.** On BNCI2015_001, R11 trained on 100 of 200
 > trials is non-inferior to a single CNN on all 200 (+0.4 pp, lower bound -0.74); at 144 it beats it
 > (+2.7 pp). R11 beats a single CNN at every budget, 12/12 subjects up at 48/100/144.
+>
+> **F1 fast training (2026-11-13):** `PipelineConfig(fast=True)` trains R11's 5 ShallowConvNets as one
+> stacked model (src/adaptation/stacked_convnet.py). R11 accuracy is identical on all 18 subjects (member
+> argmax agreement 99.99%, max |dp| 0.005); 4.1x faster on IV-2a (2.2 -> 0.5 min/subject), 1.15x on IV-2b
+> (3 channels: already overhead-bound). Default stays exact. AMP gave nothing; torch.compile has no triton
+> on Windows. Open: IV-2b's remaining cost is braindecode FTSurrogate's per-call host syncs.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

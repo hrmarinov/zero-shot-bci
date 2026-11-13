@@ -370,15 +370,20 @@ non-inferior): about half the labels on IV-2a (288) and a third on IV-2b (~420).
 200 (84.6% vs 84.2%, non-inferior). With 144 trials it beats it (+2.7 pp). At every budget R11 beats
 a single CNN trained on the same trials, and at 48, 100 and 144 trials every subject improves.
 
+**Faster training (F1).** `PipelineConfig(fast=True)` trains R11's five ShallowConvNets as one stacked
+model. Accuracy is unchanged on all 18 subjects (0.00 pp; 99.99% of member predictions identical), and it
+is 4.1× faster on IV-2a (2.2 → 0.5 min per user). IV-2b, with 3 channels, gains only 1.15×. The default
+stays the exact path, so every cached result still reproduces.
+
 **Known limits:**
 - R11's alignment uses the whole unlabelled test session up front, so it is not yet usable live, one
   trial at a time.
-- It costs 5 small GPU fits per user.
+- It costs 5 small GPU fits per user (about half a minute with `fast=True`).
 - On IV-2a it is 2.3 pp below the best published leak-free result.
 - P300 transfer is untested, because of the dataset loader problem above.
 
 **Next, in order:**
-1. Faster training: all ensemble CNNs as one batched model, plus mixed precision.
+1. ~~Faster training~~ done (F1); mixed precision gave no gain on this GPU.
 2. A different architecture (TCFormer / EEGNet / CTNet) as an ensemble member instead of extra
    ShallowConvNet seeds. This is the most likely accuracy gain; it will be pre-registered and checked
    on the lockbox.
