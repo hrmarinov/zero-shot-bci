@@ -1266,8 +1266,8 @@ gauge-invariant features. Cheap to test alongside A13's re-referencing ablations
 > training sessions (self-aligned, pooled loss) then fine-tuned: +3.8 pp at 48 trials and +2.0 pp at 96 on
 > IV-2a + IV-2b (16/18 and 13/18 up); lockbox +3.1 pp at 48 and +2.2 pp at 100 (10/12, 11/12 up). On the
 > lockbox 48 of 200 labelled trials now match a single CNN on all 200 (was 100). No gain at FULL (IV-2a
-> -1.5 pp). Zero-shot: 77.0% IV-2b, 64.9% lockbox, 54.6% IV-2a. Open: make pretraining an option in
-> src/pipeline.py and src/live.py; A23 is done.
+> -1.5 pp). Zero-shot: 77.0% IV-2b, 64.9% lockbox, 54.6% IV-2a. Pretraining is now an option
+> (src/pretrain.py, fit_predict(pretrained=...), LiveDecoder); it reproduces P1 bit-for-bit. A23 is done.
 
 Chosen for information value per unit cost, and because each one gates or feeds the next.
 

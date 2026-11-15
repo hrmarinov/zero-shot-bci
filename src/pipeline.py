@@ -85,6 +85,10 @@ class PipelineConfig:
 R11 = PipelineConfig(n_cnn=3, n_fts=2)
 R10 = PipelineConfig(n_cnn=3, n_fts=0)
 LITE = PipelineConfig(n_cnn=0, n_fts=1)
+# R11 with population-pretrained CNNs (P1): fine-tune 100 epochs on the stacked path. Use with
+# fit_predict(..., pretrained=src.pretrain.pretrain_members(...)); for short calibrations (<= ~144 trials).
+R11_PT = PipelineConfig(n_cnn=3, n_fts=2, fast=True, train=TrainConfig(epochs=100, batch_size=48, lr=1e-3,
+                                                                        weight_decay=1e-3, max_shift=0))
 
 
 @dataclass(frozen=True)
@@ -197,15 +201,17 @@ def _cnn_tensors(data: SubjectData, A: np.ndarray, n_classes: int, cfg: Pipeline
 
 def cnn_member(data: SubjectData, A: np.ndarray, n_classes: int, seed: int, augmentation: str | None,
                cfg: PipelineConfig, device: torch.device,
-               extra_tests: dict[str, np.ndarray] | None = None) -> np.ndarray | dict[str, np.ndarray]:
+               extra_tests: dict[str, np.ndarray] | None = None,
+               init: dict | None = None) -> np.ndarray | dict[str, np.ndarray]:
     """One ShallowConvNet on the aligned CNN input ``A``, built after seeding (bit-exact reruns).
 
     Returns the test-trial probabilities. With ``extra_tests`` ({name: test-trial input}), the same trained
-    model also predicts each extra input, and a dict {"test": ..., **names: ...} is returned."""
+    model also predicts each extra input, and a dict {"test": ..., **names: ...} is returned. ``init`` (a
+    state dict, e.g. from src.pretrain) replaces the random initial weights; training is then fine-tuning."""
     Xt, Xe, target = _cnn_tensors(data, A, n_classes, cfg, device)
     set_deterministic(seed)
     augment = None if augmentation is None else make_augmentation(augmentation, seed)
-    model = ShallowConvNet(A.shape[1], n_classes, A.shape[2]).to(device)
+    model = build_shallow(A.shape[1], n_classes, A.shape[2], init).to(device)
     model = train_model(model, Xt, target, cfg.train, seed=seed, augment=augment)
     probs = predict_proba(model, Xe)
     if extra_tests is not None:
@@ -217,19 +223,31 @@ def cnn_member(data: SubjectData, A: np.ndarray, n_classes: int, seed: int, augm
     return probs
 
 
+def build_shallow(n_chans: int, n_classes: int, n_times: int, init: dict | None) -> ShallowConvNet:
+    """A ShallowConvNet (call after set_deterministic); ``init`` loads pretrained weights and BN statistics."""
+    model = ShallowConvNet(n_chans, n_classes, n_times)
+    if init is not None:
+        model.load_state_dict(init)
+    return model
+
+
 def cnn_members_stacked(data: SubjectData, A: np.ndarray, n_classes: int,
                         specs: list[tuple[int, str | None]], cfg: PipelineConfig,
-                        device: torch.device) -> list[np.ndarray]:
+                        device: torch.device, inits: list[dict | None] | None = None) -> list[np.ndarray]:
     """The members ``specs`` = [(seed, augmentation), ...] trained together as one stacked model.
 
     Each member is built after ``set_deterministic(seed)`` exactly as in :func:`cnn_member`, and keeps its
-    own batch order, dropout stream and augmentation draws (src/adaptation/stacked_convnet.py)."""
+    own batch order, dropout stream and augmentation draws (src/adaptation/stacked_convnet.py). ``inits``
+    gives each member's pretrained state dict (or None)."""
     Xt, Xe, target = _cnn_tensors(data, A, n_classes, cfg, device)
+    inits = inits if inits is not None else [None] * len(specs)
+    if len(inits) != len(specs):
+        raise ValueError("need one init per member")
     members, states, augments = [], [], []
-    for seed, aug in specs:
+    for (seed, aug), init in zip(specs, inits):
         set_deterministic(seed)
         augments.append(None if aug is None else make_augmentation(aug, seed))
-        members.append(ShallowConvNet(A.shape[1], n_classes, A.shape[2]).to(device))
+        members.append(build_shallow(A.shape[1], n_classes, A.shape[2], init).to(device))
         states.append(dropout_rng_state(device))
     model = StackedShallowConvNet(members).to(device)
     del members
@@ -250,16 +268,23 @@ def combine(families: dict[str, np.ndarray]) -> np.ndarray:
 
 def fit_predict(data: SubjectData, n_classes: int, cfg: PipelineConfig = R11,
                 device: torch.device | None = None, cache_dir: Path | None = None,
-                before_fit: Callable[[], None] | None = None) -> dict[str, np.ndarray]:
+                before_fit: Callable[[], None] | None = None,
+                pretrained: list[dict] | None = None) -> dict[str, np.ndarray]:
     """Fit every member on the training trials; return test-trial probabilities per family and 'ensemble'.
 
-    ``cache_dir`` stores each CNN member's probabilities (``{family}_seed{k}[_fast][_causal].npy``) so an interrupted
-    run resumes; ``before_fit`` runs before each GPU fit (e.g. src.gpu_health.wait_until_healthy).
+    ``cache_dir`` stores each CNN member's probabilities (``{family}_seed{k}[_fast][_causal][_pt].npy``) so an
+    interrupted run resumes; ``before_fit`` runs before each GPU fit (e.g. src.gpu_health.wait_until_healthy).
+    ``pretrained`` (src.pretrain.pretrain_members; one state dict per CNN member, base seeds then FTSurrogate
+    seeds) initialises the CNNs, which are then fine-tuned on the training trials (use R11_PT, P1).
     """
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     aligned: list[np.ndarray] = []  # CNN input, aligned once on first use
-    suffix = ("_fast" if cfg.fast else "") + ("_causal" if cfg.alignment == "causal" else "")  # never mix caches
+    suffix = (("_fast" if cfg.fast else "") + ("_causal" if cfg.alignment == "causal" else "")
+              + ("_pt" if pretrained is not None else ""))  # never mix caches
     specs = [("cnn", k, None) for k in range(cfg.n_cnn)] + [("fts", k, "ftsurrogate") for k in range(cfg.n_fts)]
+    if pretrained is not None and len(pretrained) != len(specs):
+        raise ValueError(f"pretrained has {len(pretrained)} members, the config has {len(specs)}")
+    init_of = {(fam, k): (None if pretrained is None else pretrained[i]) for i, (fam, k, _) in enumerate(specs)}
 
     def cache_path(family: str, seed: int) -> Path | None:
         return None if cache_dir is None else Path(cache_dir) / f"{family}_seed{seed}{suffix}.npy"
@@ -271,7 +296,8 @@ def fit_predict(data: SubjectData, n_classes: int, cfg: PipelineConfig = R11,
             if before_fit is not None:
                 before_fit()
             A = align_for(cfg, data, data.X_cnn)
-            probs = cnn_members_stacked(data, A, n_classes, [(k, aug) for _, k, aug in todo], cfg, device)
+            probs = cnn_members_stacked(data, A, n_classes, [(k, aug) for _, k, aug in todo], cfg, device,
+                                        [init_of[(fam, k)] for fam, k, _ in todo])
             for (fam, k, _), p in zip(todo, probs):
                 stacked[(fam, k)] = p
 
@@ -288,7 +314,7 @@ def fit_predict(data: SubjectData, n_classes: int, cfg: PipelineConfig = R11,
             before_fit()
         if not aligned:
             aligned.append(align_for(cfg, data, data.X_cnn))
-        p = cnn_member(data, aligned[0], n_classes, seed, aug, cfg, device)
+        p = cnn_member(data, aligned[0], n_classes, seed, aug, cfg, device, init=init_of[(family, seed)])
         if path is not None:
             path.parent.mkdir(parents=True, exist_ok=True)
             np.save(path, p)

@@ -10,6 +10,9 @@ running Riemannian reference, warm-started from the training session's mean and 
 trial exactly as :func:`src.pipeline.align_causal` (C1). Decoding a whole session trial by trial therefore
 gives the same probabilities as ``fit_predict(..., alignment="causal")`` (checked in tests and in
 ``experiments/live_replay_check.py``). No labels are used after calibration.
+
+Short calibration (P1): ``LiveDecoder.calibrate(..., cfg=R11_PT, pretrained=src.pretrain.pretrain_members(...))``
+fine-tunes population-pretrained CNNs instead of training them from scratch.
 """
 
 from __future__ import annotations
@@ -26,10 +29,10 @@ from pyriemann.geometry.geodesic import geodesic_riemann
 from pyriemann.geometry.mean import mean_riemann
 
 from src.adaptation.augmentation import make_augmentation
-from src.adaptation.convnet import ShallowConvNet, predict_proba, set_deterministic, train_model
+from src.adaptation.convnet import predict_proba, set_deterministic, train_model
 from src.adaptation.stacked_convnet import (StackedShallowConvNet, dropout_rng_state, predict_proba_stacked,
                                             train_stacked)
-from src.pipeline import R11, PipelineConfig, align_by_group, combine, fit_tslr
+from src.pipeline import R11, PipelineConfig, align_by_group, build_shallow, combine, fit_tslr
 
 Predictor = Callable[[torch.Tensor], list[np.ndarray]]  # (n, chans, times) -> one (n, n_classes) per member
 
@@ -58,26 +61,26 @@ class _RunningReference:
 
 
 def _train_cnns(A: np.ndarray, target: torch.Tensor, n_classes: int, specs: list[tuple[int, str | None]],
-                cfg: PipelineConfig, device: torch.device) -> Predictor:
+                cfg: PipelineConfig, device: torch.device, inits: list[dict | None]) -> Predictor:
     """The CNN members (seed, augmentation), trained as src.pipeline does (exact or stacked)."""
     Xt = torch.as_tensor(A.astype(np.float32), device=device)
     if not specs:
         return lambda X: []
     if cfg.fast:
         members, states, augments = [], [], []
-        for seed, aug in specs:
+        for (seed, aug), init in zip(specs, inits):
             set_deterministic(seed)
             augments.append(None if aug is None else make_augmentation(aug, seed))
-            members.append(ShallowConvNet(A.shape[1], n_classes, A.shape[2]).to(device))
+            members.append(build_shallow(A.shape[1], n_classes, A.shape[2], init).to(device))
             states.append(dropout_rng_state(device))
         model = train_stacked(StackedShallowConvNet(members).to(device), Xt, target, cfg.train,
                               [s for s, _ in specs], augments, states)
         return lambda X: list(predict_proba_stacked(model, X))
     models = []
-    for seed, aug in specs:
+    for (seed, aug), init in zip(specs, inits):
         set_deterministic(seed)
         augment = None if aug is None else make_augmentation(aug, seed)
-        model = ShallowConvNet(A.shape[1], n_classes, A.shape[2]).to(device)
+        model = build_shallow(A.shape[1], n_classes, A.shape[2], init).to(device)
         models.append(train_model(model, Xt, target, cfg.train, seed=seed, augment=augment))
     return lambda X: [predict_proba(m, X) for m in models]
 
@@ -94,8 +97,12 @@ class LiveDecoder:
 
     @classmethod
     def calibrate(cls, X_cnn: np.ndarray, X_tslr: np.ndarray, y: np.ndarray, groups: np.ndarray, n_classes: int,
-                  cfg: PipelineConfig = R11, device: torch.device | None = None) -> "LiveDecoder":
-        """Train every member on the labelled calibration trials (aligned per group, as R11)."""
+                  cfg: PipelineConfig = R11, device: torch.device | None = None,
+                  pretrained: list[dict] | None = None) -> "LiveDecoder":
+        """Train every member on the labelled calibration trials (aligned per group, as R11).
+
+        ``pretrained`` (src.pretrain.pretrain_members) initialises the CNNs, which are then fine-tuned; use it
+        with ``cfg=R11_PT`` for short calibrations (P1)."""
         cfg = replace(cfg, alignment="causal")
         device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if not (len(X_cnn) == len(X_tslr) == len(y) == len(groups)):
@@ -105,7 +112,10 @@ class LiveDecoder:
                   else torch.as_tensor(y, dtype=torch.long, device=device))
         A_cnn = align_by_group(X_cnn, groups)
         specs = [(k, None) for k in range(cfg.n_cnn)] + [(k, "ftsurrogate") for k in range(cfg.n_fts)]
-        nets = _train_cnns(A_cnn, target, n_classes, specs, cfg, device)
+        if pretrained is not None and len(pretrained) != len(specs):
+            raise ValueError(f"pretrained has {len(pretrained)} members, the config has {len(specs)}")
+        inits = list(pretrained) if pretrained is not None else [None] * len(specs)
+        nets = _train_cnns(A_cnn, target, n_classes, specs, cfg, device, inits)
         tslr = fit_tslr(align_by_group(X_tslr, groups), y) if cfg.use_tslr else None
 
         def prior(X: np.ndarray) -> np.ndarray:

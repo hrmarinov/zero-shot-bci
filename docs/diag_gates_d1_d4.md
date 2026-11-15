@@ -1204,4 +1204,6 @@ other subjects?
 - **Rule check:** pooling other subjects into one supervised loss, each self-aligned, works. Unlike the
   failed population methods, no computation aligns or compares two subjects' covariances. This fits the
   project's finding.
-- **Not yet done:** pretraining is not yet an option in `src/pipeline.py` or `src/live.py`.
+- **Now an option** (`src/pretrain.py`; `fit_predict(..., R11_PT, pretrained=...)`; `LiveDecoder.calibrate(..., pretrained=...)`).
+  `experiments/p1_pipeline_check.py` shows the option reproduces P1 bit-for-bit on IV-2a s1 and IV-2b s1:
+  the pretrained weights, the zero-shot predictions, and the fine-tuned members at 48 trials and at FULL.

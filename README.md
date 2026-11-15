@@ -130,7 +130,9 @@ the method otherwise is.**
 
 ```
 src/                      Reusable library (imported by every experiment)
-  pipeline.py             The R11 decoder as one entry point: fit_predict() with R11 / R10 / LITE configs
+  pipeline.py             The R11 decoder as one entry point: fit_predict() with R11 / R10 / LITE / R11_PT configs
+  live.py                 LiveDecoder: calibrate once, then decode one trial at a time (causal alignment)
+  pretrain.py             Population pretraining of the CNN members and zero-shot prediction (P1)
   config.py               Repo paths + shared constants; MNE/MOABB cache-path fix
   datasets.py             MOABB loaders: IV-2a, IV-2b, OpenBMI, PhysioNet
   gpu_health.py           Waits for a healthy GPU before each fit (long unattended runs)
@@ -417,7 +419,8 @@ the training session).
 5. ~~A live decoder~~ done: [`src/live.py`](src/live.py) calibrates once, then decodes one trial in
    ~6 ms, matching causal R11 exactly on all 18 recorded sessions. Not yet run closed-loop.
 6. ~~Population-pretrained CNN members~~ done (P1): confirmed, 48 labelled trials suffice on the lockbox.
-7. Make pretraining an option in `src/pipeline.py` and the live decoder.
+7. ~~Pretraining as an option~~ done: `src/pretrain.py` + `fit_predict(..., R11_PT, pretrained=...)` and the live
+   decoder; reproduces P1 bit-for-bit.
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on
