@@ -75,7 +75,7 @@ Weaknesses:
    living with the decoder would feel. The only multi-session set (Zhou2020, 7 sessions) is sealed as a
    lockbox; another multi-session set is needed, or the lockbox must be spent on this.
 7. **No closed-loop session** ever; every "live" number is an offline replay.
-8. **Items with no recorded status:** the TODO's 32 candidate items carry no done/closed marks (3 are
+8. **Items with no recorded status:** the TODO's 32 candidate items carry almost no done/closed marks (2 are
    annotated); FBCSP (A9), within-subject shrinkage (A8), alignment-estimator variants (A12), the illiteracy
    predictor (A19), cross-paradigm fingerprints (A21), self-supervised pretraining on the target's own
    unlabelled data (A30) appear untouched. Also never done: abstention on low-confidence trials.
