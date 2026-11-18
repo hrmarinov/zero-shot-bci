@@ -403,8 +403,8 @@ TS+LR alone (the classic Riemannian decoder) is weaker than the CNN: −5.95 pp 
 - The 0.5/0.5 weight was fixed a priori.
 - The pre-registered test is stack versus a single CNN. The diversity-versus-size comparison is
   post-hoc.
-- No untouched third two-session dataset is available locally (Lee2019 exposes only one day
-  through MOABB, see docs/datasets.md §4). Any further steps that select more ensemble members
+- No untouched third two-session dataset was available locally at the time (Lee2019 was thought to expose only one day
+  through MOABB; it exposes both, see D2 below). Any further steps that select more ensemble members
   must therefore be scored on both datasets, with this R10 result as the bar to beat.
 
 ## R11 — round 3: a third ensemble member; FTSurrogate CNNs PASS, low-frequency member INVALID (ocular) (`experiments/r11_round3_diverse_members.py`)
@@ -1207,3 +1207,49 @@ other subjects?
 - **Now an option** (`src/pretrain.py`; `fit_predict(..., R11_PT, pretrained=...)`; `LiveDecoder.calibrate(..., pretrained=...)`).
   `experiments/p1_pipeline_check.py` shows the option reproduces P1 bit-for-bit on IV-2a s1 and IV-2b s1:
   the pretrained weights, the zero-shot predictions, and the fine-tuned members at 48 trials and at FULL.
+
+## D2, Lee2019_MI as the 54-subject development cohort (council step 1)
+
+**Why.** 18 IV-2a/2b sessions give an MDE of 1.2-1.8 pp, so a "+0.5 pp" gate selects noise. Lee2019_MI has 54
+subjects x 2 sessions (different days); MOABB does expose both (the §R10 note above that it has one day is
+stale). Protocol pre-registered in `experiments/d2_lee2019_dev.py` (fd277bc); the fresh sealed lockbox is
+Zhou2020 (`docs/lockbox_zhou2020_protocol.md`, not downloaded). Two implementation bugs fixed in separate
+commits, protocol unchanged: MOABB read the default sessions `(1, 2)` as 0-based positions (only session 2
+loaded), and the share-of-subjects test compared percent to 0.70 (recomputed from the saved CSV, no refit).
+
+**Setup.** Session 1 -> 2, 100 labelled trials each, 20 sensorimotor channels fixed a priori, R11 with
+`fast=True`, no tuning. Baseline numbers (accuracy, %):
+
+| arm | mean | share >= 70 % | bottom third (18, by csp_lda) |
+|---|---|---|---|
+| cnn1 | 68.01 | 38.9 % | 55.13 |
+| csp_lda | 68.78 | 44.4 % | 53.22 |
+| tslr | 70.72 | 50.0 % | 55.83 |
+| r10 | 72.31 | 53.7 % | 57.33 |
+| ctrl | 71.61 | 55.6 % | 56.94 |
+| **r11** | **74.54** | **59.3 %** | **59.83** |
+
+Contrasts (one-sided, Holm over H1-H4; mean = sign-flip Monte-Carlo, share = exact sign test on discordant
+subjects):
+
+| | mean diff | up/down | p mean (Holm) | share up/down, p (Holm) | bottom third |
+|---|---|---|---|---|---|
+| H1 r11 - cnn1 | +6.52 | 49/5 | 0.0002 | 11/0, 0.0005 (0.0020) | +4.70 |
+| H2 r11 - csp_lda | +5.76 | 41/10 | 0.0002 | 10/2, 0.019 (0.058) | +6.61 |
+| H3 r11 - ctrl (FTSurrogate diversity) | +2.93 | 39/7 | 0.0002 | 2/0, 0.25 | +2.89 |
+| H4 r11 - r10 | +2.22 | 37/12 | 0.0002 | 3/0, 0.125 | +2.50 |
+
+**Reading.** R11's design gains replicate on 54 new subjects (H1-H4 all > 0 with Holm p = 0.0002). The gain is
+spread over the bottom third too. Share >= 70 % is a weaker endpoint: it only moves on a few subjects for the
+small contrasts (H3, H4).
+
+**Power.** SD of the per-subject paired difference r11 - cnn1 is 5.5 pp (binomial floor of two 100-trial scores
+6.2 pp: nearly all subject-level noise is trial noise). MDE at 80 % power: **1.9 pp at n = 54**, 3.1 pp at
+n = 20 (Zhou2020), 3.2 pp at n = 18 (IV-2a/2b). Power of the sign-flip at n = 54: 17 % @ +0.5, 35 % @ +1.0,
+62 % @ +1.5, 85 % @ +2.0, 99.6 % @ +3.0 pp. So a +0.5 pp gate is still noise even here; a claim should expect
+>= +2 pp, and the 20-subject lockbox can only confirm >= +3 pp.
+
+**Gate from now on.** Candidate screens run on Lee2019 (n = 54, primary: pooled gain >= +0.5 pp AND Holm
+p < 0.05, plus the share >= 70 % and bottom-third endpoints reported) with IV-2a/2b as secondary (> 0 each);
+a confirmed screen opens the Zhou2020 lockbox once, only if the claimed effect is >= its MDE.
+Results: `results/d2_lee2019_dev.csv`, `results/d2_lee2019_dev_contrasts.csv`.

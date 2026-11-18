@@ -1352,3 +1352,9 @@ To count as a real improvement, a candidate must clear all of these:
    product, whatever the mean says.
 
 A +1pp result that clears all seven is worth more than a +4pp result that clears none.
+
+## D2, Lee2019_MI dev cohort + sealed Zhou2020 lockbox (done)
+Council step 1. 54-subject dev baseline: R11 74.5 % vs single CNN 68.0 (+6.5, 49/5), CSP+LDA 68.8, ctrl 71.6
+(+2.9), r10 72.3 (+2.2); share >= 70 %: 59.3 vs 38.9 %; MDE 1.9 pp at n = 54, 3.1 pp at n = 20. Zhou2020 sealed
+(`docs/lockbox_zhou2020_protocol.md`). Next: weak-subject diagnosis on Lee2019, bigger pretraining pool (Lee2019,
+Cho2017, HGD) + L2-SP fine-tuning, per-subject member weights; screens now run on Lee2019.

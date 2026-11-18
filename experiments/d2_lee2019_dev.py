@@ -174,7 +174,7 @@ def summarise(df: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
     res = []
     for h, (a, b) in CONTRASTS.items():
         d = (pp[a] - pp[b]).to_numpy()
-        up, down, p_share = sign_test_share(pp[a].to_numpy(), pp[b].to_numpy())
+        up, down, p_share = sign_test_share(pp[a].to_numpy() / 100, pp[b].to_numpy() / 100)
         d3 = (pp.loc[third, a] - pp.loc[third, b]).to_numpy()
         res.append({"contrast": h, "a": a, "b": b, "mean_pp": d.mean(), "up": int((d > 0).sum()),
                     "down": int((d < 0).sum()), "p_mean": sign_flip_p(d),

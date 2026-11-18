@@ -421,6 +421,8 @@ the training session).
 6. ~~Population-pretrained CNN members~~ done (P1): confirmed, 48 labelled trials suffice on the lockbox.
 7. ~~Pretraining as an option~~ done: `src/pretrain.py` + `fit_predict(..., R11_PT, pretrained=...)` and the live
    decoder; reproduces P1 bit-for-bit.
+8. ~~A 54-subject development cohort~~ done (D2): Lee2019_MI baseline R11 74.5 % (+6.5 pp over a single CNN, +2.9 over the size-matched control); MDE 1.9 pp at n = 54, so screens now run there. Fresh lockbox sealed: Zhou2020 ([protocol](docs/lockbox_zhou2020_protocol.md)).
+9. Next: weak-subject diagnosis, a larger pretraining pool with L2-SP fine-tuning, per-subject member weights (all screened on Lee2019).
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on
