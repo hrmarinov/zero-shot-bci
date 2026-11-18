@@ -409,6 +409,7 @@ the training session).
 - It costs 5 small GPU fits per user (about half a minute with `fast=True`).
 - On IV-2a it is 2.3 pp below the best published leak-free result.
 - P300 transfer is untested, because of the dataset loader problem above.
+- A head-to-head against the published TCFormer recipe on our own split has not been run; its per-subject results beat R11 on subjects 2, 4 and 6. See [`docs/project_audit.md`](docs/project_audit.md).
 
 **Next, in order:**
 1. ~~Faster training~~ done (F1); mixed precision gave no gain on this GPU.

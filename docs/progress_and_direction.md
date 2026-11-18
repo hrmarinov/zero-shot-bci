@@ -8,6 +8,8 @@ own execution log and decision history. Update it whenever a phase produces
 a real result (positive or negative) - a stale version of this file is worse
 than none, because it would misdirect the next round of work.
 
+> **Stale summary (as of 2026-11-18).** The executive summary below stops at R3 (2026-11-04). The current state is in the README and `docs/diag_gates_d1_d4.md`; the audit and open leads are in `docs/project_audit.md`.
+
 ## Executive summary (read this first)
 
 - **R3 (2026-11-04): new best, 74.7% cross-session (+7.8pp over 66.9%), pre-registered

@@ -1364,11 +1364,6 @@ No signal-free subjects; R11 74.5 vs within-session ceiling 76.3. 9/54 transfer-
 the rest signal-limited. Transfer-side work can add at most ~2 pp (about the dev MDE). Next: pretraining pool +
 L2-SP, per-subject weights, screened on Lee2019.
 
-## D3, weak-subject diagnosis on Lee2019 (done)
-No signal-free subjects; R11 74.5 vs within-session ceiling 76.3. 9/54 transfer-limited (headroom ~2.4 pp total),
-the rest signal-limited. Transfer-side work can add at most ~2 pp (about the dev MDE). Next: pretraining pool +
-L2-SP, per-subject weights, screened on Lee2019.
-
 ## D4 + E1 (done)
 D4: ceiling is sample-limited in all groups (~3 pp per doubling of same-session trials; other-day trials ~worthless
 at equal count). E1: CSD / 62 channels fail the gate (-0.74 / +0.24 / +0.35 pp). Lead: 62 channels, bottom third
