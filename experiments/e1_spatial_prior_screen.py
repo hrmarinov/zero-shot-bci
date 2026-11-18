@@ -64,9 +64,12 @@ CACHE = DATA_DIR / "cache" / "e1_spatial"
 
 def csd_raw(raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
     """Spherical-spline CSD on the EEG channels, relabelled as EEG, stim channel kept (EMG dropped)."""
-    c = csd(raw.copy().pick(mne.pick_types(raw.info, eeg=True)))
-    out = mne.io.RawArray(c.get_data(), mne.create_info(c.ch_names, c.info["sfreq"], "eeg"), verbose=False)
-    return out.add_channels([raw.copy().pick(mne.pick_types(raw.info, eeg=False, stim=True))])
+    eeg = raw.copy().pick(mne.pick_types(raw.info, eeg=True))
+    c = csd(eeg)
+    if c.ch_names != eeg.ch_names:
+        raise AssertionError("CSD changed the channel order")
+    eeg._data[:] = c.get_data()  # keep the original info (filter metadata, montage), only the values change
+    return eeg.add_channels([raw.copy().pick(mne.pick_types(raw.info, eeg=False, stim=True))])
 
 
 class LeeArms(Lee2019_MI):
