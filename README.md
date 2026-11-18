@@ -422,7 +422,8 @@ the training session).
 7. ~~Pretraining as an option~~ done: `src/pretrain.py` + `fit_predict(..., R11_PT, pretrained=...)` and the live
    decoder; reproduces P1 bit-for-bit.
 8. ~~A 54-subject development cohort~~ done (D2): Lee2019_MI baseline R11 74.5 % (+6.5 pp over a single CNN, +2.9 over the size-matched control); MDE 1.9 pp at n = 54, so screens now run there. Fresh lockbox sealed: Zhou2020 ([protocol](docs/lockbox_zhou2020_protocol.md)).
-9. Next: weak-subject diagnosis, a larger pretraining pool with L2-SP fine-tuning, per-subject member weights (all screened on Lee2019).
+9. ~~Weak-subject diagnosis~~ done (D3): no subject is signal-free; R11 already sits at the within-session ceiling on average (74.5 vs 76.3); only 9 of 54 subjects are transfer-limited, worth at most ~2.4 pp.
+10. Next: a larger pretraining pool with L2-SP fine-tuning and per-subject member weights (screened on Lee2019); expect gains near the 1.9 pp MDE.
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on

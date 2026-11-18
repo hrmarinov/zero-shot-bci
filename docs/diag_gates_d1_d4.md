@@ -1253,3 +1253,59 @@ n = 20 (Zhou2020), 3.2 pp at n = 18 (IV-2a/2b). Power of the sign-flip at n = 54
 p < 0.05, plus the share >= 70 % and bottom-third endpoints reported) with IV-2a/2b as secondary (> 0 each);
 a confirmed screen opens the Zhou2020 lockbox once, only if the claimed effect is >= its MDE.
 Results: `results/d2_lee2019_dev.csv`, `results/d2_lee2019_dev_contrasts.csv`.
+
+## D3, why weak Lee2019 subjects stay weak (council step 2; `experiments/d3_weak_subject_diagnosis.py`)
+
+Pre-registered diagnostic on the D2 caches (CPU; evaluation labels only for ceilings, nothing is fitted on them).
+Within-session 5-fold CV ceilings (best of CSP+LDA, TS+LR, 8-30 Hz, per-session RA) vs R11's cross-session score.
+
+| quantity (mean, %) | value |
+|---|---|
+| R11 (session 1 -> 2) | 74.54 |
+| within-session ceiling, session 1 / 2 | 74.48 / 76.31 |
+| linear cross-session 1->2 / 2->1 | 71.89 / 72.04 |
+
+- **No subject is signal-free.** No subject has both within-session ceilings < 60 %; the weak ones (22 subjects with
+  R11 < 70 %) have a weak signal, not none.
+- **R11 already sits at the within-session ceiling on average** (74.5 vs 76.3, with only 80 training trials per fold
+  in the CV): the cross-session penalty of a linear decoder (about 4.4 pp) is almost fully recovered by R11.
+- **Two groups of weak subjects.** 15 of the 22 are "other" (R11 within 10 pp of their ceiling, mean R11 77.2 over
+  that group's 45 subjects): signal-limited, little to gain from a better transfer method. 9 subjects are
+  transfer-limited (within2 - R11 >= 10 pp; R11 61.1 vs ceiling 75.7); 7 of them are weak. They hold 57 % of the
+  total headroom, 4.2 pp averaged over all subjects (optimistic: max of two decoders, noisy 100-trial CV,
+  clipped at 0), so about 2.4 pp is the most a perfect cross-session method could add. They explain 28 % of the
+  shortfall of subjects to the top quartile; the other 72 % is subject-level signal strength.
+- R11 correlates with every ceiling (Spearman +0.85 within1, +0.82 within2, +0.92 cross12); the day-to-day gap
+  within2 - cross12 correlates -0.32 (p = 0.017).
+
+**Consequence.** Weak subjects are mostly a signal-strength problem, not a transfer problem. The realistic
+target for transfer-side work (pretraining, per-subject weights, drift handling) is about 2 pp at best, and only
+through the 9 transfer-limited subjects; a gain of this size is at the dev-cohort MDE (1.9 pp at n = 54).
+
+## D3, why weak Lee2019 subjects stay weak (council step 2; `experiments/d3_weak_subject_diagnosis.py`)
+
+Pre-registered diagnostic on the D2 caches (CPU; evaluation labels only for ceilings, nothing is fitted on them).
+Within-session 5-fold CV ceilings (best of CSP+LDA, TS+LR, 8-30 Hz, per-session RA) vs R11's cross-session score.
+
+| quantity (mean, %) | value |
+|---|---|
+| R11 (session 1 -> 2) | 74.54 |
+| within-session ceiling, session 1 / 2 | 74.48 / 76.31 |
+| linear cross-session 1->2 / 2->1 | 71.89 / 72.04 |
+
+- **No subject is signal-free.** No subject has both within-session ceilings < 60 %; the 22 subjects with
+  R11 < 70 % have a weak signal, not none.
+- **R11 already sits at the within-session ceiling on average** (74.5 vs 76.3, with only 80 training trials per fold
+  in the CV): the cross-session penalty of a linear decoder (about 4.4 pp) is almost fully recovered by R11.
+- **Two groups.** 45 subjects are "other" (R11 within 10 pp of their ceiling, mean R11 77.2; 15 of the 22 weak
+  subjects): signal-limited, little to gain from a better transfer method. 9 subjects are transfer-limited
+  (within2 - R11 >= 10 pp; R11 61.1 vs ceiling 75.7); 7 of them are weak. They hold 57 % of the total headroom,
+  4.2 pp averaged over all subjects (optimistic: max of two decoders, noisy 100-trial CV, clipped at 0), so about
+  2.4 pp is the most a perfect cross-session method could add. They explain 28 % of the shortfall of subjects to
+  the top quartile; the other 72 % is subject-level signal strength.
+- R11 correlates with every ceiling (Spearman +0.85 within1, +0.82 within2, +0.92 cross12); the day-to-day gap
+  within2 - cross12 correlates -0.32 (p = 0.017).
+
+**Consequence.** Weak subjects are mostly a signal-strength problem, not a transfer problem. The realistic
+target for transfer-side work (pretraining, per-subject weights, drift handling) is about 2 pp at best, only
+through the 9 transfer-limited subjects: at the dev-cohort MDE (1.9 pp at n = 54).

@@ -1358,3 +1358,13 @@ Council step 1. 54-subject dev baseline: R11 74.5 % vs single CNN 68.0 (+6.5, 49
 (+2.9), r10 72.3 (+2.2); share >= 70 %: 59.3 vs 38.9 %; MDE 1.9 pp at n = 54, 3.1 pp at n = 20. Zhou2020 sealed
 (`docs/lockbox_zhou2020_protocol.md`). Next: weak-subject diagnosis on Lee2019, bigger pretraining pool (Lee2019,
 Cho2017, HGD) + L2-SP fine-tuning, per-subject member weights; screens now run on Lee2019.
+
+## D3, weak-subject diagnosis on Lee2019 (done)
+No signal-free subjects; R11 74.5 vs within-session ceiling 76.3. 9/54 transfer-limited (headroom ~2.4 pp total),
+the rest signal-limited. Transfer-side work can add at most ~2 pp (about the dev MDE). Next: pretraining pool +
+L2-SP, per-subject weights, screened on Lee2019.
+
+## D3, weak-subject diagnosis on Lee2019 (done)
+No signal-free subjects; R11 74.5 vs within-session ceiling 76.3. 9/54 transfer-limited (headroom ~2.4 pp total),
+the rest signal-limited. Transfer-side work can add at most ~2 pp (about the dev MDE). Next: pretraining pool +
+L2-SP, per-subject weights, screened on Lee2019.
