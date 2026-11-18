@@ -1309,3 +1309,54 @@ Within-session 5-fold CV ceilings (best of CSP+LDA, TS+LR, 8-30 Hz, per-session 
 **Consequence.** Weak subjects are mostly a signal-strength problem, not a transfer problem. The realistic
 target for transfer-side work (pretraining, per-subject weights, drift handling) is about 2 pp at best, only
 through the 9 transfer-limited subjects: at the dev-cohort MDE (1.9 pp at n = 54).
+
+## D4, is the ceiling sample-limited? Learning curves on Lee2019 (`experiments/d4_learning_curve.py`)
+
+Pre-registered, CPU. Within-session CV accuracy with 20, 40 and 80 training trials (both sessions averaged), and
+a pooled 200-trial CV (both sessions, 80 and 160 training trials). Verdict rules fixed in advance (sample-limited
+if gain per doubling >= 1.5 pp with CI lower bound > 0).
+
+| decoder, group | acc @ 20 / 40 / 80 trials | gain per doubling [95 % CI] | pooled @ 80 / 160 | verdict |
+|---|---|---|---|---|
+| TS+LR, all 54 | 67.7 / 71.1 / 74.4 | +3.37 [+2.80, +3.91] | 72.3 / 74.6 | sample-limited |
+| TS+LR, bottom third | 57.0 / 59.3 / 62.9 | +2.99 [+1.97, +4.05] | 59.4 / 61.8 | sample-limited |
+| TS+LR, middle third | 62.5 / 66.9 / 70.7 | +4.10 [+3.37, +4.77] | 68.7 / 71.7 | sample-limited |
+| TS+LR, top third | 83.6 / 87.1 / 89.6 | +3.01 [+2.08, +3.95] | 88.9 / 90.2 | sample-limited |
+| CSP+LDA, all 54 | 64.1 / 68.2 / 72.2 | +4.04 [+3.44, +4.66] | 70.2 / 73.3 | sample-limited |
+| CSP+LDA, bottom third | 54.7 / 56.3 / 60.0 | +2.68 [+1.73, +3.61] | 57.4 / 60.4 | sample-limited |
+
+**Reading.** Every group, the bottom third included, is still gaining about 3 pp per doubling of same-session
+trials at 80 trials: the within-session ceiling of D3 (76.3 %) is a sample-limited estimate, not a signal floor
+(extrapolated, optimistically, to ~78 % for TS+LR all subjects and ~66 % for the bottom third at 160 trials).
+**Caveat that matters:** trials from the other day are worth much less than same-session ones. Pooled 160
+trials (80 per day) score 74.6 %, the same as 80 trials from one session (74.4 %), and the pooled 80-trial
+subsample (72.3 %) is 2.1 pp below same-session 80. The extra data have to be effectively same-session
+(more calibration trials, pretraining that transfers, priors that cut variance), not other-day trials taken
+at face value. Weak subjects have the same slope as strong ones, so a variance-reduction idea (physics
+priors, a better pretraining pool, regularisation towards a population solution) should help them as much in
+absolute terms.
+
+## E1, spatial-information screen: surface Laplacian and all 62 channels (`experiments/e1_spatial_prior_screen.py`)
+
+Pre-registered (commit before the run; one implementation bug fixed separately: the CSD values were written
+into a new array whose filter metadata did not merge, protocol unchanged). R11 identical to D2 except the spatial
+input, Lee2019_MI, 54 subjects. Baseline = D2 R11 (74.54 %, share >= 70 % 59.3 %, bottom third 59.83 %).
+
+| arm | R11 | diff vs D2 | up/down | Holm p (mean) | share >= 70 % | bottom third diff | gate |
+|---|---|---|---|---|---|---|---|
+| H1 CSD + 20 channels | 73.80 | -0.74 | 16/32 | 1.0 | 55.6 % | +0.56 | fail |
+| H2 62 channels | 74.78 | +0.24 | 23/28 | 1.0 | 64.8 % | +4.39 (unadjusted p = 0.024) | fail |
+| H3 CSD + 62 channels | 74.89 | +0.35 | 25/26 | 1.0 | 63.0 % | +2.56 | fail |
+
+**Result: none of the three passes the screen** (needs >= +0.5 pp and Holm p < 0.05). The surface Laplacian
+does not help (and hurts slightly with 20 channels). Extra channels leave the mean unchanged.
+- The ensemble absorbs the extra channels differently from its parts: with 62 channels R11 - single CNN grows
+  from +6.5 to +9.4 pp because the CNN members get worse (more inputs per 100 trials), while the covariance
+  members (TS+LR) gain; the final mean is the same.
+- The bottom third gains +4.4 pp with 62 channels (unadjusted p = 0.024, 3 contrasts x 3 endpoints, so it is a
+  lead, not a finding), and the share >= 70 % rises 59.3 -> 64.8 % (5 up, 2 down, p = 0.23). Both would need a
+  separate pre-registered test (a62 only, bottom third and share as primary) before anything is claimed; the
+  mean-gain gate would still not be passed.
+- Per D4 the missing resource is samples, not spatial detail: priors that act on the sample count (pretraining,
+  regularisation towards a population solution) are the next candidates.
+Results: `results/e1_spatial_prior_screen.csv`, `results/e1_spatial_prior_screen_contrasts.csv`.

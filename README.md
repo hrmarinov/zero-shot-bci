@@ -423,7 +423,9 @@ the training session).
    decoder; reproduces P1 bit-for-bit.
 8. ~~A 54-subject development cohort~~ done (D2): Lee2019_MI baseline R11 74.5 % (+6.5 pp over a single CNN, +2.9 over the size-matched control); MDE 1.9 pp at n = 54, so screens now run there. Fresh lockbox sealed: Zhou2020 ([protocol](docs/lockbox_zhou2020_protocol.md)).
 9. ~~Weak-subject diagnosis~~ done (D3): no subject is signal-free; R11 already sits at the within-session ceiling on average (74.5 vs 76.3); only 9 of 54 subjects are transfer-limited, worth at most ~2.4 pp.
-10. Next: a larger pretraining pool with L2-SP fine-tuning and per-subject member weights (screened on Lee2019); expect gains near the 1.9 pp MDE.
+10. ~~Is the ceiling sample-limited? (D4)~~ yes: every group, weak subjects included, still gains ~3 pp per doubling of same-session trials; other-day trials are worth much less.
+11. ~~Spatial information (E1)~~ surface Laplacian and 62 channels do not raise R11 (-0.7 / +0.2 / +0.4 pp, all fail the gate); 62 channels give a bottom-third lead (+4.4 pp, unadjusted) worth one targeted test.
+12. Next: sample-count variance reduction, i.e. a larger pretraining pool with L2-SP fine-tuning and per-subject member weights, screened on Lee2019 (expect gains near the 1.9 pp MDE).
 
 **Deliberately closed:** population-based covariance correction (four independent
 failures); naive feature concatenation (actively harmful); dimensionality reduction on
