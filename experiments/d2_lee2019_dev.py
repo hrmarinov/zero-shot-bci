@@ -213,6 +213,7 @@ def main() -> int:
     else:
         from moabb.datasets import Lee2019_MI
         dataset = Lee2019_MI()
+        dataset._selected_sessions = None  # MOABB reads the default (1, 2) as 0-based positions and keeps only session 2
         subjects, cache_root, device, channels = dataset.subject_list, CACHE / "preds", torch.device("cuda"), CHANNELS
         if args.prefetch:
             for s in subjects:
