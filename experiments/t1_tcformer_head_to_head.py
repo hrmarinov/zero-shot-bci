@@ -164,7 +164,12 @@ def fit_predict(Xt: np.ndarray, yt: np.ndarray, Xe: np.ndarray, seed: int, epoch
         sched.step()
     model.eval()
     with torch.no_grad():
-        return torch.softmax(model(torch.as_tensor(Xe, device=device)), dim=1).cpu().numpy()
+        xe = torch.as_tensor(Xe, device=device)
+        probs = np.concatenate([torch.softmax(model(xe[i:i + BATCH]), dim=1).cpu().numpy()
+                                for i in range(0, len(xe), BATCH)])  # eval mode: chunking is exact
+    del model, opt, X, y
+    torch.cuda.empty_cache()  # the guard reads this process's own cached VRAM (7.4 GB after the 288-trial eval pass)
+    return probs
 
 
 def summarise(df: pd.DataFrame) -> None:
@@ -213,6 +218,7 @@ def main() -> int:
                 if args.dry_run:
                     wait_until_healthy()
                     p = fit_predict(At, yt, Ae, seed, 2, device)
+                    wait_until_healthy()  # must pass after a fit (the abort happened here)
                     print(f"dry run s{s} {arm} seed {seed}: 2 epochs in {time.time() - t0:.1f} s, probs {p.shape}, "
                           f"sum {p.sum(1).mean():.3f}")
                     continue
