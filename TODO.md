@@ -1384,3 +1384,7 @@ Next: freeze rules on paper, CPU diagnostics (G4-G7), recipe ablation on IV-2a, 
 ## T2, Lee2019 blend screen (stopped early, 2026-11-24)
 21 of 54 subjects: blend - R11 +1.52 pp (11 up / 10 down), TCFormer alone -2.0 vs R11. Stopped on cost (about 4 min GPU per
 user for TCFormer), not on a statistical rule. Decision: no TCFormer in R11. IV-2a 90 % unconfirmed. See reports/t1_council.md §8.
+
+## Guiding rule (user, 2026-11-24)
+Test only ideas whose expected benefit is good for their added complexity. Before a screen, state the expected gain and the
+cost (GPU time per user, code, extra models); skip it if the ratio is poor. See README, Method rules, item 7.

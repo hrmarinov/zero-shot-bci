@@ -211,6 +211,9 @@ probs = fit_predict(data, n_classes, R11)["ensemble"]     # class probabilities 
 4. Screen on two datasets. Two methods that won on IV-2a alone gained almost nothing on IV-2b.
 5. Use CSP+LDA as the baseline. It is hard to beat.
 6. Run an EOG control (see above).
+7. Weigh benefit against complexity before you test. Write down the expected gain and the cost (GPU time per user,
+   code, extra models) first. Skip tests where the gain is small for the cost. Example: TCFormer in R11 gave about
+   +1.5 pp on Lee2019 for 8–28 times the training time, so it was dropped (T2).
 
 ## Status
 
