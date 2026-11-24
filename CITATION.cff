@@ -12,6 +12,7 @@ abstract: >-
 authors:
   - family-names: Marinov
     given-names: Hristo
+    orcid: "https://orcid.org/0009-0002-0542-8279"
 version: 0.1.0
 date-released: 2026-10-07
 license: MIT

@@ -257,7 +257,7 @@ See [`CITATION.cff`](CITATION.cff).
 
 ## AI assistance
 
-Hristo Marinov designed the project, chose the protocols and takes responsibility for all claims.
+Hristo Marinov ([ORCID 0009-0002-0542-8279](https://orcid.org/0009-0002-0542-8279)) designed the project, chose the protocols and takes responsibility for all claims.
 Claude (Anthropic) helped write code, tests and documentation. Commits from 4–6 November 2026 carry
 a `Co-Authored-By: Claude` trailer. The experiments are pre-registered and every result is in
 `results/`, so you can check each number by rerunning the script.
