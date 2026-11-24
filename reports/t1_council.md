@@ -93,3 +93,24 @@ The blend result is a second, separate paper-sized claim. Do not mix it into the
   citations as unverified until you open them.
 - Costs on Lee2019 and IV-2b are estimates. Only the IV-2a fit time (14 min) is measured.
 - The class-order mapping used by the reviewers was inferred and then checked by reproducing every T1 accuracy to 1e-9.
+
+## 7. CPU distillation probe (post hoc, exploratory, 2026-11-24)
+
+Question: can a small student keep the R11 + TCFormer blend's gain? Student: tangent-space logistic regression on the
+aligned IV-2a covariances (the R11 member, 69.3 % alone). It trains on the 288 training trials with their labels, plus test
+trials labelled by a teacher (hard labels; no test labels used). Teachers: the blend (90.32), R11 alone (82.45), TCFormer
+alone (85.38). Mean over 9 subjects. The script is not committed (it reads scratch R11 probabilities).
+
+| student trained with teacher labels on | scored on the same test trials | scored on held-out half of the test trials |
+|---|---|---|
+| none (training labels only) | 69.3 | 69.3 |
+| R11 | 81.9 | 71.5 |
+| TCFormer | 85.6 | 70.2 |
+| blend | 89.3 | 71.8 |
+
+- **Same trials: memorisation.** The student copies the teacher's labels on the trials it is trained on (89.3 against 90.3).
+  This needs the teacher at test time anyway, so it saves nothing.
+- **Held-out trials: almost nothing transfers.** The student reaches 71.8 % with the blend as teacher and 71.5 % with R11 as
+  teacher. The blend adds 0.3 pp over R11 as a teacher, and every student stays about 10 pp below its teacher.
+- **Meaning.** A linear tangent-space student is too weak to absorb either teacher. This does not show that a CNN student
+  fails. The next test needs a ShallowConvNet or small TCFormer student, so GPU time.
