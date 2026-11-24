@@ -114,3 +114,27 @@ alone (85.38). Mean over 9 subjects. The script is not committed (it reads scrat
   teacher. The blend adds 0.3 pp over R11 as a teacher, and every student stays about 10 pp below its teacher.
 - **Meaning.** A linear tangent-space student is too weak to absorb either teacher. This does not show that a CNN student
   fails. The next test needs a ShallowConvNet or small TCFormer student, so GPU time.
+
+## 8. T2, Lee2019 blend screen: stopped early on cost (2026-11-24)
+
+Pre-registered in `experiments/t2_lee_blend_screen.py` (124b2de). Stopped by the user after 21 of 54 subjects (28-48), **not**
+on a statistical rule. Reason: the gain is too small for the cost. TCFormer needs about 4 minutes of GPU per user on Lee2019
+(14 minutes on IV-2a), against 0.5 minutes for all of R11. The screen was **not completed**, so there is no PASS or FAIL.
+The script `--summarise` was not run; the numbers below are an ad hoc look at the completed fits (accuracy, %, mean over
+subjects 28-48 only; those subjects were fitted first, not sampled at random).
+
+| R11 | TCFormer | blend | control |
+|---|---|---|---|
+| 78.38 | 76.38 | 79.90 | 75.95 |
+
+| contrast | mean | up / down |
+|---|---|---|
+| blend - R11 | +1.52 pp | 11 / 10 |
+| blend - TCFormer | +3.52 pp | 14 / 6 |
+| blend - control | +3.95 pp | 13 / 5 |
+| TCFormer - R11 | -2.00 pp | 10 / 10 |
+
+Reading: on Lee2019 TCFormer alone is not ahead of R11, and the IV-2a blend gain (+7.9 pp) shrinks to +1.5 pp. The per-subject
+spread is large (SD 8 pp), so +1.5 pp is not distinguishable from zero at n = 21. The interim stop rule I stated after seeing
+7 subjects (stop below +0.5 pp at 27 subjects) was not reached. Decision: do not add TCFormer to R11. The IV-2a 90 % result
+stays unconfirmed and is not a claim. 21 fits are in `data/cache/t2_preds` (not committed).

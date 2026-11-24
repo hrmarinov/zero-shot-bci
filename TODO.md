@@ -1380,3 +1380,7 @@ Lee2019; why the recipe helps subjects 2, 4, 6 and not 5, 7 (interaug? broadband
 ## T1 council (2026-11-24)
 `reports/t1_council.md`. Post hoc: R11 + TCFormer (equal-weight probabilities) gives 90.3 % on IV-2a, 9/9 up, vs R11 82.45.
 Next: freeze rules on paper, CPU diagnostics (G4-G7), recipe ablation on IV-2a, blend screen on Lee2019, TCFormer on IV-2b.
+
+## T2, Lee2019 blend screen (stopped early, 2026-11-24)
+21 of 54 subjects: blend - R11 +1.52 pp (11 up / 10 down), TCFormer alone -2.0 vs R11. Stopped on cost (about 4 min GPU per
+user for TCFormer), not on a statistical rule. Decision: no TCFormer in R11. IV-2a 90 % unconfirmed. See reports/t1_council.md §8.
