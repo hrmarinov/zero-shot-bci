@@ -1398,3 +1398,6 @@ on Lee2019 R11 (25 up / 11 down), +0.27 pp on IV-2a, subject 2 -3.1 pp.
 ## S1 cheap stack screen (done, 2026-11-24)
 None adopted: bal +0.70 pp (Holm p 0.060), geo -0.15, cv -0.06, tyl +0.24, euc +0.09 on Lee2019. Cheap lane closed. Next per
 `docs/benefit_complexity_review.md`: S6 CNN recipe screen (GPU, at most +1 min per user), preprint track.
+
+### S6 CNN recipe screen (2026-11-25): done, none adopted
+interaug +0.26 pp, Mixup +0.31 pp on R11 Lee2019 (Holm p 0.29); recipe lane closed. Next: preprint track, S7/S8 hygiene.

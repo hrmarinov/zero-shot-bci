@@ -252,7 +252,7 @@ near chance).
 **Next** (plan: [`docs/benefit_complexity_review.md`](docs/benefit_complexity_review.md))
 
 1. ~~Cheap stack of zero-fit fixes~~ done (S1 screen): none adopted. The cheap lane on cached members is closed.
-2. Try CNN training-recipe pieces (schedule, interaug, Mixup) that add at most 1 minute per user.
+2. ~~CNN training-recipe pieces (interaug, Mixup)~~ done (S6 screen): none adopted. The recipe lane is closed.
 3. One Zhou2020 opening, only if step 2 reaches +3 pp.
 4. In parallel, a capped set of tests for the ocular-confound preprint.
 

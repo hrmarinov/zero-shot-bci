@@ -96,3 +96,9 @@ Result: **none of S1, S2, S3a, S3b, S5 was adopted** (`docs/diag_gates_d1_d4.md`
 (+0.70 pp, Holm p = 0.060). The cheap lane on cached members is closed. Remaining plan items: S6 (CNN training recipe, needs
 fits, at most +1 min per user), S4 (needs out-of-fold fits), the preprint track, and S7/S8 (hygiene). The ratio rule now points
 at S6 first, and only if a pre-registered one-day screen on Lee2019 with `fast=True` can show a gain of at least +1 pp.
+
+## 7. Update: S6 recipe screen run (2026-11-25)
+
+Result: **neither interaug (+0.26 pp) nor Mixup (+0.31 pp) was adopted** (Holm p = 0.29; `docs/diag_gates_d1_d4.md`, section "S6").
+The recipe lane is closed. Remaining plan items: S4 (member weights, needs out-of-fold fits; expected gain small), the
+preprint track, S7/S8 hygiene. No accuracy lever with a good ratio is left on the list.

@@ -1394,3 +1394,18 @@ pre-registered run adds no new evidence for it. Share of subjects at least 70 % 
 third moves by at most +0.8 pp (bal 60.67 against 59.83). R11's averaging rule, TS+LR settings and alignment sit on a flat
 optimum: the cheap, no-fit lane is closed. S4 (member weights) and S6 (CNN training recipe) remain; both need fits.
 Results: `results/s1_cheap_stack_lee2019.csv`, `results/s1_cheap_stack_contrasts.csv`.
+
+## S6: CNN training-recipe screen (2026-11-25, pre-registered in f10fa03)
+
+Arms: base, interaug, Mixup on R11's ShallowConvNet members (seeds 0-2); Lee2019 n = 54 primary, IV-2a n = 9 secondary.
+The retrained base reproduces R11 exactly (Lee2019 74.54 %, IV-2a 82.45 %).
+
+| Arm | R11 gain, Lee2019 (pp) | up / down | Holm p | Single model (pp) | IV-2a gain (pp) | Cost ratio | Adopt |
+|---|---|---|---|---|---|---|---|
+| interaug | +0.26 | 23 / 19 | 0.29 | +0.77 | +0.19 | 2.42 | no |
+| mixup | +0.31 | 22 / 20 | 0.29 | -7.50 | 0.00 | 1.04 | no |
+
+Neither arm reaches the +1.0 pp bar; both are far from significance. Mixup hurts the single model by 7.5 pp (300 epochs
+is too short for soft labels) and the ensemble hides it. Interaug helps a single model slightly, but the ensemble already
+averages that variance away. **Verdict: none adopted; the CNN recipe lane is closed.** The gap to TCFormer is not in these
+two pieces. Results: `results/s6_cnn_recipe_*.csv`.
