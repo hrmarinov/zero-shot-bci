@@ -144,19 +144,21 @@ def lr_factor(epoch: int) -> float:
     return 0.5 * (1 + np.cos(np.pi * (epoch - WARMUP) / max(1, EPOCHS - WARMUP)))
 
 
-def fit_predict(Xt: np.ndarray, yt: np.ndarray, Xe: np.ndarray, seed: int, epochs: int, device) -> np.ndarray:
+def fit_predict(Xt: np.ndarray, yt: np.ndarray, Xe: np.ndarray, seed: int, epochs: int, device,
+                n_chans: int = N_EEG, n_classes: int = N_CLASSES, batch: int = BATCH) -> np.ndarray:
+    """Defaults are the T1 recipe; T2 passes its own channel count, class count and batch size."""
     torch.manual_seed(seed)
     np.random.seed(seed)
     torch.cuda.manual_seed_all(seed)
-    model = TCFormerModule(N_EEG, N_CLASSES, **MODEL_KW).to(device)
+    model = TCFormerModule(n_chans, n_classes, **MODEL_KW).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=LR, betas=BETAS, weight_decay=WD)
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_factor)
     X, y = torch.as_tensor(Xt, device=device), torch.as_tensor(yt, device=device)
     for _ in range(epochs):
         model.train()
         order = torch.randperm(len(X), device=device)
-        for i in range(0, len(X), BATCH):
-            xb, yb = interaug(X[order[i:i + BATCH]], y[order[i:i + BATCH]])
+        for i in range(0, len(X), batch):
+            xb, yb = interaug(X[order[i:i + batch]], y[order[i:i + batch]])
             loss = torch.nn.functional.cross_entropy(model(xb), yb)
             opt.zero_grad()
             loss.backward()
@@ -165,8 +167,8 @@ def fit_predict(Xt: np.ndarray, yt: np.ndarray, Xe: np.ndarray, seed: int, epoch
     model.eval()
     with torch.no_grad():
         xe = torch.as_tensor(Xe, device=device)
-        probs = np.concatenate([torch.softmax(model(xe[i:i + BATCH]), dim=1).cpu().numpy()
-                                for i in range(0, len(xe), BATCH)])  # eval mode: chunking is exact
+        probs = np.concatenate([torch.softmax(model(xe[i:i + batch]), dim=1).cpu().numpy()
+                                for i in range(0, len(xe), batch)])  # eval mode: chunking is exact
     del model, opt, X, y
     torch.cuda.empty_cache()  # the guard reads this process's own cached VRAM (7.4 GB after the 288-trial eval pass)
     return probs
