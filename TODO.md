@@ -1376,3 +1376,7 @@ pre-registered rule (needs 6). Ocular share only 0.5 pp (p = 0.46), so the IV-2b
 Subjects 2 and 6 reach 74.3 / 73.1 % with EOG removed (R11 66.0): not signal-limited. Open: T1 on IV-2b and
 Lee2019; why the recipe helps subjects 2, 4, 6 and not 5, 7 (interaug? broadband? schedule?). See
 `docs/diag_gates_d1_d4.md` §T1.
+
+## T1 council (2026-11-24)
+`reports/t1_council.md`. Post hoc: R11 + TCFormer (equal-weight probabilities) gives 90.3 % on IV-2a, 9/9 up, vs R11 82.45.
+Next: freeze rules on paper, CPU diagnostics (G4-G7), recipe ablation on IV-2a, blend screen on Lee2019, TCFormer on IV-2b.
