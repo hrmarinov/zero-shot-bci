@@ -1394,3 +1394,7 @@ Order: (1) pre-register the cheap stack S1-S5 (class-balance correction, averagi
 alignment-estimator variants); (2) CNN recipe pieces within +1 min per user; (3) one Zhou2020 opening if >= +3 pp; (4) capped
 preprint tests. Items below that are not on this list are closed or deferred. Post hoc lead: class-balance correction +0.70 pp
 on Lee2019 R11 (25 up / 11 down), +0.27 pp on IV-2a, subject 2 -3.1 pp.
+
+## S1 cheap stack screen (done, 2026-11-24)
+None adopted: bal +0.70 pp (Holm p 0.060), geo -0.15, cv -0.06, tyl +0.24, euc +0.09 on Lee2019. Cheap lane closed. Next per
+`docs/benefit_complexity_review.md`: S6 CNN recipe screen (GPU, at most +1 min per user), preprint track.

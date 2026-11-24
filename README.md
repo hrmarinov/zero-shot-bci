@@ -251,10 +251,9 @@ near chance).
 
 **Next** (plan: [`docs/benefit_complexity_review.md`](docs/benefit_complexity_review.md))
 
-1. Pre-register one stacked test of cheap fixes on cached predictions: class-balance correction, ensemble averaging
-   rule, TS+LR tuning, per-member weights, alignment-estimator variants. No new fits.
+1. ~~Cheap stack of zero-fit fixes~~ done (S1 screen): none adopted. The cheap lane on cached members is closed.
 2. Try CNN training-recipe pieces (schedule, interaug, Mixup) that add at most 1 minute per user.
-3. One Zhou2020 opening, only if steps 1 and 2 together reach +3 pp.
+3. One Zhou2020 opening, only if step 2 reaches +3 pp.
 4. In parallel, a capped set of tests for the ocular-confound preprint.
 
 ## Citation

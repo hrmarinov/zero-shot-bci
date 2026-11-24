@@ -89,3 +89,10 @@ Each step states the gain and the cost, and what it decides.
 **Gate for every new idea.** Write: expected gain (shrunk), cost (GPU minutes per user, lines of code, extra models), the
 detectable effect at the dataset size, and a kill rule. If gain divided by cost is poor, add it to the closed list
 instead of testing it.
+
+## 6. Update: the cheap CPU stack was run (S1 screen, 2026-11-24)
+
+Result: **none of S1, S2, S3a, S3b, S5 was adopted** (`docs/diag_gates_d1_d4.md`, section "S1"). Class balancing was the nearest
+(+0.70 pp, Holm p = 0.060). The cheap lane on cached members is closed. Remaining plan items: S6 (CNN training recipe, needs
+fits, at most +1 min per user), S4 (needs out-of-fold fits), the preprint track, and S7/S8 (hygiene). The ratio rule now points
+at S6 first, and only if a pre-registered one-day screen on Lee2019 with `fast=True` can show a gain of at least +1 pp.

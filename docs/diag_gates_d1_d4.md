@@ -1373,3 +1373,24 @@ GPU (same code at commit f13557e, Colab's own torch build, same seeds). The two 
 results. The effect on the means is small but not measured.
 
 Results: `results/t1_tcformer_head_to_head.csv`; per-fit probabilities in `data/cache/t1_preds` (not committed).
+
+## S1, cheap stack screen: five zero-fit changes to R11, none adopted (`experiments/s1_cheap_stack_screen.py`)
+
+Pre-registered (cc71c15) before any arm was scored. CPU only, on cached R11 members. Lee2019 (n = 54) primary, IV-2a (n = 9)
+secondary. Rule: adopt an arm if the Lee2019 gain is at least +0.5 pp with Holm p < 0.05 (over 5 arms) and the IV-2a mean is
+not negative. R11: Lee2019 74.54 %, IV-2a 82.45 % (both reproduced exactly).
+
+| arm | change | Lee2019 gain (pp) | up / down | p | Holm p | IV-2a gain (pp) | adopt |
+|---|---|---|---|---|---|---|---|
+| bal | equalise predicted class counts | +0.70 | 25 / 11 | 0.012 | 0.060 | +0.27 | no |
+| geo | geometric mean of the families | −0.15 | 8 / 13 | 0.91 | 1.0 | −0.15 | no |
+| cv | TS+LR, C by inner CV | −0.06 | 12 / 13 | 0.67 | 1.0 | −0.15 | no |
+| tyl | Tyler covariance in TS+LR | +0.24 | 21 / 17 | 0.13 | 0.52 | +0.04 | no |
+| euc | Euclidean alignment for TS+LR | +0.09 | 14 / 12 | 0.34 | 1.0 | +0.19 | no |
+
+**Result: nothing adopted, no stack.** The nearest miss is class balancing (+0.70 pp, 25 up / 11 down), which fails the
+corrected test by 0.01 (Holm p = 0.060). The post hoc +0.70 pp seen before the pre-registration is the same number, so the
+pre-registered run adds no new evidence for it. Share of subjects at least 70 % is unchanged for four arms; the bottom
+third moves by at most +0.8 pp (bal 60.67 against 59.83). R11's averaging rule, TS+LR settings and alignment sit on a flat
+optimum: the cheap, no-fit lane is closed. S4 (member weights) and S6 (CNN training recipe) remain; both need fits.
+Results: `results/s1_cheap_stack_lee2019.csv`, `results/s1_cheap_stack_contrasts.csv`.
