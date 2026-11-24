@@ -249,12 +249,13 @@ near chance).
 - The TCFormer head-to-head (T1) is inconclusive on IV-2a and not run on IV-2b or Lee2019.
 - The 54-subject cohort has a minimum detectable effect of 1.9 pp. Smaller effects cannot be shown.
 
-**Next**
+**Next** (plan: [`docs/benefit_complexity_review.md`](docs/benefit_complexity_review.md))
 
-1. Run T1 on IV-2b and Lee2019, and find which part of TCFormer's recipe helps subjects 2, 4 and 6.
-2. Test variance reduction on Lee2019: a larger pretraining pool, L2-SP fine-tuning and
-   per-subject member weights.
-3. Optionally, port the recipe to the FALCON intracortical benchmark.
+1. Pre-register one stacked test of cheap fixes on cached predictions: class-balance correction, ensemble averaging
+   rule, TS+LR tuning, per-member weights, alignment-estimator variants. No new fits.
+2. Try CNN training-recipe pieces (schedule, interaug, Mixup) that add at most 1 minute per user.
+3. One Zhou2020 opening, only if steps 1 and 2 together reach +3 pp.
+4. In parallel, a capped set of tests for the ocular-confound preprint.
 
 ## Citation
 

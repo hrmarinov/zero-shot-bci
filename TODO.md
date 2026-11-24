@@ -1388,3 +1388,9 @@ user for TCFormer), not on a statistical rule. Decision: no TCFormer in R11. IV-
 ## Guiding rule (user, 2026-11-24)
 Test only ideas whose expected benefit is good for their added complexity. Before a screen, state the expected gain and the
 cost (GPU time per user, code, extra models); skip it if the ratio is poor. See README, Method rules, item 7.
+
+## Plan reset (2026-11-24): follow `docs/benefit_complexity_review.md`
+Order: (1) pre-register the cheap stack S1-S5 (class-balance correction, averaging rule, TS+LR tuning, member weights,
+alignment-estimator variants); (2) CNN recipe pieces within +1 min per user; (3) one Zhou2020 opening if >= +3 pp; (4) capped
+preprint tests. Items below that are not on this list are closed or deferred. Post hoc lead: class-balance correction +0.70 pp
+on Lee2019 R11 (25 up / 11 down), +0.27 pp on IV-2a, subject 2 -3.1 pp.
