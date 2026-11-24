@@ -1332,3 +1332,44 @@ does not help (and hurts slightly with 20 channels). Extra channels leave the me
 - Per D4 the missing resource is samples, not spatial detail: priors that act on the sample count (pretraining,
   regularisation towards a population solution) are the next candidates.
 Results: `results/e1_spatial_prior_screen.csv`, `results/e1_spatial_prior_screen_contrasts.csv`.
+
+## T1, TCFormer's published recipe head to head with R11 on IV-2a (`experiments/t1_tcformer_head_to_head.py`)
+
+Pre-registered (commit 1ff9628; two bug fixes after it, 477a2fc, with the protocol unchanged). Question: is the
+published 84.8 % IV-2a bar neural, or does it include eye movement? Recipe: the official TCFormer model and training
+(broadband 0.5-100 Hz input resampled to 250 Hz, per-channel z-score fitted on the training session, interaug,
+1000 epochs, Adam lr 9e-4, betas (0.5, 0.999), warm-up 20 epochs plus cosine schedule, last epoch scored). Two arms,
+`raw` (22 EEG channels) and `eog` (3 EOG channels regressed out, coefficients from the training session). Seeds 0
+and 1, 9 subjects, 36 fits. Rule: NEURAL if eog minus R11 is at least +1 pp with at least 6 of 9 subjects up.
+
+Per-subject accuracy, mean of the two seeds (%); R11 is the 82.45 % result:
+
+| arm | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | mean |
+|---|---|---|---|---|---|---|---|---|---|---|
+| TCFormer raw | 89.6 | 74.1 | 94.1 | 85.4 | 74.8 | 70.5 | 93.2 | 88.2 | 89.2 | 84.36 |
+| TCFormer eog | 89.2 | 74.3 | 95.8 | 83.3 | 71.4 | 73.1 | 91.8 | 87.0 | 88.7 | 83.85 |
+| R11 | 89.2 | 66.0 | 92.7 | 78.8 | 78.5 | 66.0 | 95.5 | 89.2 | 86.1 | 82.45 |
+
+| contrast | mean | up / down | two-sided p |
+|---|---|---|---|
+| raw - R11 | +1.91 pp | 6 / 3 | 0.199 |
+| raw - eog (ocular share) | +0.50 pp | 6 / 3 | 0.457 |
+| eog - R11 (the bar) | +1.41 pp | 5 / 3 (1 tie) | 0.430 |
+
+**Reproduction.** Raw seed-mean 84.36 against the published 84.79. Seed 0 alone: 85.15 against 84.80, per-subject
+difference +0.35 pp, largest 3.5 pp. The recipe is reproduced.
+
+**Verdict: inconclusive.** The mean difference (+1.41 pp) passes the +1 pp bound, but only 5 subjects are up and the
+rule needs 6. With n = 9 no contrast is significant. What the data do show:
+- **The IV-2a bar is not mostly ocular.** Removing the EOG channels costs TCFormer 0.5 pp (p = 0.46), against 4.6 pp
+  on IV-2b (D6). The IV-2b result does not carry over to IV-2a.
+- **TCFormer is probably somewhat ahead of R11 on IV-2a (+1.4 to +1.9 pp), but 9 subjects cannot confirm it.**
+- **Weak subjects.** With EOG removed TCFormer scores 74.3 % on subject 2 and 73.1 % on subject 6, against 66.0 % for
+  R11 on both. These two subjects are not signal-limited, and the signal is not ocular. R11 is better on subjects
+  5 (+7.1 pp) and 7 (+3.6 pp).
+
+**Provenance deviation.** The raw arm and eog subject 9 ran on the RTX 4060 laptop. Eog subjects 1-8 ran on a Colab
+GPU (same code at commit f13557e, Colab's own torch build, same seeds). The two GPU types do not give bit-identical
+results. The effect on the means is small but not measured.
+
+Results: `results/t1_tcformer_head_to_head.csv`; per-fit probabilities in `data/cache/t1_preds` (not committed).

@@ -25,7 +25,7 @@ our own split, so we do not actually know our position.
 | Half the labelled trials match a single CNN | lockbox confirmed (L2); with pretraining a quarter (P1, lockbox confirmed) | strong; pretraining hurts at the full session |
 | Works live (causal alignment) | −0.3 pp dev (non-inferior), lockbox bound exactly −1.0 (not shown); no closed-loop test | moderate |
 | Zero-shot (no calibration) | 55 % IV-2a, 65 % lockbox, 77 % IV-2b, a by-product of P1 | weak, never optimised |
-| Competitive with the published state of the art | R11 82.5 vs TCFormer 84.8 on IV-2a; IV-2b gap is ocular (D6) | not shown; below on IV-2a |
+| Competitive with the published state of the art | R11 82.5 vs TCFormer 84.8 on IV-2a; IV-2b gap is ocular (D6) | below on IV-2a by 1.4-1.9 pp after T1 (not significant at n = 9); IV-2b gap is ocular |
 | Population-data correction, drift trackers, self-training, spatial priors fail | many nulls, most at n = 9 (MDE above 3 pp) | real, but each only excludes large effects |
 
 ## What the protocol did well, and where it let us down
@@ -42,8 +42,11 @@ Weaknesses:
 3. **Early rounds were underpowered.** With 9 subjects, effects below about +2 pp are undetectable (TODO §0).
    "Closed" for the small-effect ideas means "no large effect", not "no effect".
 4. **We never measured the bar we compare against.** TCFormer's 84.8 % is from its paper. A1 ran TCFormer
-   inside our trainer, which is not its recipe.
-5. **Our "irreducible weak subjects" claim is not safe.** The council and D3 said subjects 2 and 6 are
+   inside our trainer, which is not its recipe. **T1 (2026-11-24) ran the published recipe on IV-2a: 84.36 %
+   (reproduced); with EOG regressed out 83.85 %, 1.4 pp above R11, 5 of 9 subjects up: inconclusive.**
+5. **Our "irreducible weak subjects" claim is wrong for subjects 2 and 6 (T1).** With EOG removed, TCFormer
+   scores 74.3 % and 73.1 % on them against 66.0 % for R11, so they carry usable, non-ocular signal. Original
+   audit text: The council and D3 said subjects 2 and 6 are
    signal-limited, from within-session ceilings measured with *our own* linear feature family (8-30 Hz band
    power). TCFormer, trained on the same training session, scores 75.4 % on subject 2 and 72.9 % on subject 6
    (seed 0); R11 scores 66.0 % on both. TCFormer wins on subjects 2, 4 and 6 (+9.4, +6.6, +6.9 pp) and loses
@@ -90,7 +93,7 @@ Weaknesses:
 
 | # | Target | Done when |
 |---|---|---|
-| T1 | Know our position | TCFormer (official recipe, 5 seeds) and the same with EOG regressed, run on IV-2a, IV-2b and Lee2019 under our split; paired per-subject comparison with R11 |
+| T1 | Know our position (IV-2a done 2026-11-24, 2 seeds; IV-2b and Lee2019 open) | TCFormer (official recipe, 5 seeds) and the same with EOG regressed, run on IV-2a, IV-2b and Lee2019 under our split; paired per-subject comparison with R11 |
 | T2 | Accuracy | R11-family >= the reproduced TCFormer on Lee2019 (n = 54, MDE 1.9 pp) and on IV-2a/2b, no worse on either |
 | T3 | Weak subjects | share of subjects >= 70 % on Lee2019 from 59 % to >= 70 %; bottom third up |
 | T4 | Calibration | 48 labelled trials match the full-session single CNN (done on the lockbox; replicate on Lee2019) |

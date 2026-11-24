@@ -45,8 +45,10 @@ inflated. A four-reviewer review
 ([`reports/r14_council_and_ideation.md`](reports/r14_council_and_ideation.md)) estimates the true
 gain at about +3.5 pp over one ShallowConvNet. The lockbox result agrees with this.
 
-The published TCFormer reaches 84.8% on IV-2a, which is 2.3 pp above R11. Nobody has yet run its
-recipe on our split. [`docs/project_audit.md`](docs/project_audit.md) lists this open test (T1).
+The published TCFormer reaches 84.8% on IV-2a, which is 2.3 pp above R11. We ran its recipe on IV-2a (T1)
+and reproduced it: 84.4%. With the EOG channels removed it scores 83.9%, which is 1.4 pp above R11. Only 5
+of 9 subjects are up, so the pre-registered test is inconclusive. Unlike IV-2b, the IV-2a result is not
+mostly eye movement (0.5 pp). See [`docs/diag_gates_d1_d4.md`](docs/diag_gates_d1_d4.md).
 
 ### Eye movement in IV-2b
 
@@ -241,12 +243,12 @@ near chance).
 - Live use was measured on recorded sessions. No closed-loop session was run.
 - R11 needs 5 small GPU fits per user.
 - On IV-2a, R11 is 2.3 pp below the best published leak-free result.
-- The TCFormer head-to-head (T1) is not finished.
+- The TCFormer head-to-head (T1) is inconclusive on IV-2a and not run on IV-2b or Lee2019.
 - The 54-subject cohort has a minimum detectable effect of 1.9 pp. Smaller effects cannot be shown.
 
 **Next**
 
-1. Finish T1: TCFormer's published recipe against R11, with and without EOG regression.
+1. Run T1 on IV-2b and Lee2019, and find which part of TCFormer's recipe helps subjects 2, 4 and 6.
 2. Test variance reduction on Lee2019: a larger pretraining pool, L2-SP fine-tuning and
    per-subject member weights.
 3. Optionally, port the recipe to the FALCON intracortical benchmark.

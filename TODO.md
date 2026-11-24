@@ -1369,3 +1369,10 @@ D4: ceiling is sample-limited in all groups (~3 pp per doubling of same-session 
 at equal count). E1: CSD / 62 channels fail the gate (-0.74 / +0.24 / +0.35 pp). Lead: 62 channels, bottom third
 +4.4 pp (unadjusted p = 0.024), share >= 70 % 59.3 -> 64.8 %: needs its own pre-registered test.
 Next: variance reduction (pretraining pool + L2-SP, per-subject weights) on Lee2019.
+
+## T1, TCFormer head to head on IV-2a (done)
+Published recipe reproduced (raw 84.36 vs 84.79 published). eog - R11 = +1.41 pp, 5/9 up: inconclusive under the
+pre-registered rule (needs 6). Ocular share only 0.5 pp (p = 0.46), so the IV-2b result does not carry over.
+Subjects 2 and 6 reach 74.3 / 73.1 % with EOG removed (R11 66.0): not signal-limited. Open: T1 on IV-2b and
+Lee2019; why the recipe helps subjects 2, 4, 6 and not 5, 7 (interaug? broadband? schedule?). See
+`docs/diag_gates_d1_d4.md` §T1.
