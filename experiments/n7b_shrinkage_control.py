@@ -24,3 +24,94 @@ REPORTED, NOT FOR DECISION: every arm's mean R11, gain over base_I, up/down, D3 
 
     .venv\Scripts\python experiments\n7b_shrinkage_control.py
 """
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+from sklearn.linear_model import RidgeCV  # noqa: E402
+
+from experiments.d2_lee2019_dev import sign_flip_p  # noqa: E402
+from experiments.n7_drift_forecast_screen import ALPHAS, N_SUB, class_means, fit_predict, subject_features  # noqa: E402
+from src.config import RESULTS_DIR  # noqa: E402
+from src.evaluate import holm_adjust  # noqa: E402
+
+LAMS = np.round(np.arange(0, 1.01, 0.1), 1)
+MIN_GAIN_PP, ALPHA = 0.5, 0.05
+CONTROLS = ("shrink2", "shrink1", "ridge_perm")
+SIMPLICITY = ("shrink1", "shrink2", "ridge_perm")
+
+
+def choose_lambda(M1: dict, M2: dict, others: list[int], target: str) -> float:
+    """Leave-one-out over ``others``: squared error of predicting m2 from the shrunk m1 (population mean of the remaining ones)."""
+    errs = []
+    for lam in LAMS:
+        e = 0.0
+        for o in others:
+            rest = [r for r in others if r != o]
+            mu = np.mean([(M2 if target == "shrink2" else M1)[r] for r in rest], 0)
+            e += ((M2[o] - ((1 - lam) * M1[o] + lam * mu)) ** 2).sum()
+        errs.append(e)
+    return float(LAMS[int(np.argmin(errs))])
+
+
+def main() -> int:
+    d3 = pd.read_csv(RESULTS_DIR / "d3_weak_subject_diagnosis.csv").set_index("subject")
+    d2 = pd.read_csv(RESULTS_DIR / "d2_lee2019_dev.csv").set_index("subject")
+    n7 = pd.read_csv(RESULTS_DIR / "n7_drift_forecast_lee2019.csv", index_col=0)
+    S = {s: subject_features(s) for s in range(1, N_SUB + 1)}
+    M1 = {s: class_means(v["F_tr"], v["y_tr"]) for s, v in S.items()}
+    M2 = {s: class_means(v["F_te"], v["y_te"]) for s, v in S.items()}
+    rows, lams = {}, {"shrink1": [], "shrink2": []}
+    for s, v in S.items():
+        others = [o for o in S if o != s]
+        X = np.stack([M1[o].ravel() for o in others])
+        Y = np.stack([M2[o].ravel() for o in others])
+        delta = {"ridge": RidgeCV(alphas=ALPHAS).fit(X, Y).predict(M1[s].ravel()[None])[0].reshape(2, -1) - M1[s],
+                 "ridge_perm": RidgeCV(alphas=ALPHAS).fit(X, np.roll(Y, 1, axis=0)).predict(M1[s].ravel()[None])[0].reshape(2, -1) - M1[s]}
+        l2, l1 = choose_lambda(M1, M2, others, "shrink2"), choose_lambda(M1, M2, others, "shrink1")
+        lams["shrink2"].append(l2)
+        lams["shrink1"].append(l1)
+        delta["shrink2"] = l2 * (np.mean([M2[o] for o in others], 0) - M1[s])
+        delta["shrink1"] = l1 * (np.mean([M1[o] for o in others], 0) - M1[s])
+        delta["base_I"] = None
+        rows[s] = {}
+        for k, d in delta.items():
+            p = fit_predict(v["F_tr"], v["y_tr"], d, v["F_te"])
+            rows[s][f"r11_{k}"] = 100 * ((((v["cnn3"] + p + v["fts2"]) / 3).argmax(1)) == v["y_te"]).mean()
+    df = pd.DataFrame(rows).T
+    for k in ("base_I", "ridge"):
+        if (df[f"r11_{k}"] - n7[f"r11_{k}"]).abs().max() > 1e-9:
+            raise AssertionError(f"{k} does not reproduce N7")
+    print("reproduces N7: base_I, ridge")
+    print(f"lambda chosen: shrink2 median {np.median(lams['shrink2']):.1f}, shrink1 median {np.median(lams['shrink1']):.1f}")
+    arms = ["base_I", "ridge", *CONTROLS]
+    tl, third = d3.index[d3.category == "transfer_limited"], d2.csp_lda.sort_values().index[: N_SUB // 3]
+    for a in arms:
+        g = df[f"r11_{a}"] - df.r11_base_I
+        print(f"{a:11s} R11 {df[f'r11_{a}'].mean():.2f}  gain over base_I {g.mean():+.2f} pp ({(g > 0).sum()} up/{(g < 0).sum()} down), "
+              f"p {sign_flip_p(g.to_numpy()):.4f}; transfer_limited {df.loc[tl, f'r11_{a}'].mean():.2f}, "
+              f"bottom third {df.loc[third, f'r11_{a}'].mean():.2f}")
+    ct = pd.DataFrame([{"contrast": f"ridge-{c}", "mean_pp": (df.r11_ridge - df[f"r11_{c}"]).mean(),
+                        "up": int((df.r11_ridge > df[f"r11_{c}"]).sum()), "down": int((df.r11_ridge < df[f"r11_{c}"]).sum()),
+                        "p": sign_flip_p((df.r11_ridge - df[f"r11_{c}"]).to_numpy())} for c in CONTROLS])
+    ct["holm_p"] = holm_adjust(ct.p.tolist())
+    print(ct.round(4).to_string(index=False))
+    specific = bool(((ct.mean_pp >= MIN_GAIN_PP) & (ct.holm_p < ALPHA)).all())
+    print(f"\nSUBJECT-SPECIFIC DRIFT FORECASTING: {specific}")
+    if not specific:
+        ok = [c for c in SIMPLICITY if (df[f"r11_{c}"] - df.r11_base_I).mean() >= MIN_GAIN_PP
+              and sign_flip_p((df[f"r11_{c}"] - df.r11_base_I).to_numpy()) < ALPHA]
+        print(f"carried forward (simplest qualifying control): {ok[0] if ok else 'none: only ridge, mechanism unresolved'}")
+    df.to_csv(RESULTS_DIR / "n7b_shrinkage_control_lee2019.csv")
+    ct.to_csv(RESULTS_DIR / "n7b_shrinkage_control_contrasts.csv", index=False)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

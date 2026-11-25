@@ -1455,3 +1455,23 @@ Caveats: n = 54 with 11 events gives wide CIs (AUC CI half-width about 0.12), so
 - IV-2a / IV-2b are not applicable (8-9 subjects, different montage); a replication needs Zhou2020, and the project's rule opens it only for an effect >= +3 pp, which this is not.
 
 Caveats: (1) no pre-registered control separates "forecasting drift" from "pulling the subject's class means toward a population prior": const covers part of it (ridge - const is positive) but a shrinkage arm was not registered; run it before believing the mechanism. (2) The TS+LR member alone is not significant; the gain shows in the ensemble. (3) Deployment needs a library of subjects with two labelled sessions (here 53). (4) Leave-one-subject-out used only the held-out subject's session 1 labels and its unlabelled session-2 trials; the Lee2019 cohort is also the cohort used for development, so this is a screen, not a confirmation. Results: `results/n7_drift_forecast_*.csv`.
+
+## N7b, shrinkage control (pre-registered in `experiments/n7b_shrinkage_control.py`, commit 28b1855)
+
+**Verdict: the N7 gain is NOT subject-specific drift forecasting. It is a population prior.** A ridge fitted with the subject pairing destroyed (`ridge_perm`) does as well as, or better than, the real forecast, and a one-parameter shrinkage of the subject's class means toward the population gets most of the gain.
+
+| Arm (R11, Lee2019 n = 54) | R11 | gain over base_I | up / down | transfer-limited (n = 9) | bottom third |
+|---|---|---|---|---|---|
+| base_I | 74.48 | - | - | 61.00 | 59.61 |
+| ridge (N7) | 76.17 | +1.69 pp | 31 / 13 | 65.22 | 62.56 |
+| shrink1 (toward population session-1 class means) | 75.57 | +1.09 pp | 31 / 6 | 63.67 | 60.78 |
+| shrink2 (toward population session-2 class means) | 75.57 | +1.09 pp | 30 / 7 | 63.33 | 60.83 |
+| ridge_perm (pairing shuffled) | 76.43 | +1.94 pp | 35 / 12 | 65.67 | 63.22 |
+
+Ridge against the controls: ridge - shrink2 +0.59 pp (Holm p 0.16), ridge - shrink1 +0.59 pp (Holm p 0.16), ridge - ridge_perm -0.26 pp (p 0.89). The pre-registered rule therefore attributes nothing to subject-specific drift, and carries forward the simplest qualifying control: **shrink1** (one parameter, lambda by leave-one-out on the 53 others, median 0.4; gain +1.09 pp, p < 0.0001, 31 up / 6 down).
+
+Reading and caveats:
+- shrink1 needs only the population mean of the session-1 class means (2 x 210 numbers), no second session of other subjects; it is a regulariser of the subject's own class means, not a model of drift. The "transfer-limited subjects improve most" story from N7 is a population-prior effect.
+- ridge_perm beats the MSE-chosen shrinkage: lambda picked for forecast error is probably smaller than the accuracy-optimal pull, so a stronger prior may add more. That is a lead, not a result: choosing lambda on accuracy would select on session-2 labels; it needs a pre-registered fixed grid and is not run here.
+- Still a screen on the development cohort (+1.1 pp is below the +3 pp bar for opening Zhou2020); no IV-2a / IV-2b replication is possible with this method as built (a population mean would need a same-montage library).
+Results: `results/n7b_shrinkage_control_*.csv`.
