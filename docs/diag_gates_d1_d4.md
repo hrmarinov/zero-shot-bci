@@ -1409,3 +1409,31 @@ Neither arm reaches the +1.0 pp bar; both are far from significance. Mixup hurts
 is too short for soft labels) and the ensemble hides it. Interaug helps a single model slightly, but the ensemble already
 averages that variance away. **Verdict: none adopted; the CNN recipe lane is closed.** The gap to TCFormer is not in these
 two pieces. Results: `results/s6_cnn_recipe_*.csv`.
+
+## N0, non-responder flag screen (pre-registered in `experiments/n0_nonresponder_screen.py`)
+
+**Verdict: no flag beats the free baseline N1 (training-session CV accuracy of TS+LR). Kill rule met; the track ends with "training CV is enough".**
+
+Setup: CPU, cached members only. Non-responder = R11 session-2 accuracy not above the one-sided binomial chance bound (Lee2019, 100 trials: 58 %), which gives 11 of 54 subjects. Bootstrap CIs over subjects, 2000 resamples. Holm over the eight flags N2a-N5 against N1. Results: `results/n0_nonresponder_*.csv`.
+
+| Flag (label use) | Spearman rho with R11 acc | AUC (responder) | PPV | dAUC vs N1 [95 % CI] | Holm p |
+|---|---|---|---|---|---|
+| N1 training CV (train labels) | 0.83 | 0.83 [0.71, 0.94] | 0.55 | - | - |
+| N2a classDistinct (train labels) | 0.79 | 0.78 | 0.45 | -0.06 [-0.19, +0.05] | 1 |
+| N2b classStability | 0.10 | 0.47 | 0.18 | -0.36 | 1 |
+| N3a mu/beta peak SNR (label-free) | 0.17 | 0.57 | 0.27 | -0.26 | 1 |
+| N3b 1/f slope (label-free) | -0.18 | 0.33 | 0.00 | -0.50 | 1 |
+| N4a ensemble disagreement (label-free, test trials) | 0.84 | 0.80 | 0.36 | -0.03 [-0.17, +0.09] | 1 |
+| N4b predictive entropy (label-free) | 0.86 | 0.83 | 0.45 | -0.00 [-0.11, +0.11] | 1 |
+| N4c top-two margin (label-free) | 0.87 | 0.82 | 0.45 | -0.01 [-0.12, +0.10] | 1 |
+| N5 conformal set size (train labels for calibration, test trials unlabelled) | 0.87 | 0.86 [0.73, 0.95] | 0.45 | +0.02 [-0.07, +0.12] | 1 |
+| N6 pre-cue SMR | not testable from caches (epochs start at the cue; no raw re-extraction) | | | | |
+
+Reading:
+- **Label-free flags that work are the test-time uncertainty ones (N4, N5)**, all about as good as N1 (AUC 0.80-0.86 against 0.83, differences inside the noise). They need no training labels, so they are a free substitute for N1, not an improvement. N5 is the nominal best (+0.02) with CI spanning zero. N5 coverage at the nominal 90 %: mean 0.914, non-responders 0.889; the expected undercoverage from session shift is small here.
+- **Spectral flags (N3) do not identify non-responders** (AUC 0.57 and 0.33). The 1/f fit regions sit at the edges of the 4-38 Hz CNN band, which is a caveat on N3, though N3a has no signal at any reasonable reading. N2b (stability alone) also fails; N2a (separability) is a weaker restatement of N1.
+- Risk-coverage (R11 accuracy, kept 100 / 80 / 60 % of subjects): N1 74.5 / 78.6 / 82.6; N5 74.5 / 78.4 / 83.8; N4c 74.5 / 78.2 / 83.6; random abstention 74.5 / 74.6 / 74.6. Dropping subjects raises mean accuracy mechanically, so this is about ranking, not gain; every credible flag recovers about the same +8 pp at 60 % coverage. CSP+LDA, TS+LR and CNN3 rankings are in `n0_nonresponder_risk_coverage.csv`.
+- Agreement on the 12 weakest subjects (R11): N1 and N5 each recover 7, N2a/N4a/N4b/N4c 6, N2b/N3a 3, N3b 1. Subjects 24 and 48 are named by no flag; 34, 11 and 26 by most. No flag finds the weakest group reliably (PPV about 0.45-0.55 at observed prevalence), and the weak subjects are the ones whose signal is not in the cached features at all.
+- IV-2a (n = 9, no non-responders by the chance bound, so no AUC): subjects 2 and 6 (66 %) are ranked low by N1 (2nd and 3rd lowest) and by N4/N5 (2nd or 3rd lowest, and N2a/N4 rank subject 6 second), but not by N3. So the cheap flags would have flagged them, although TCFormer reaches 73-75 % on them. IV-2b (n = 9, one non-responder) is descriptive only.
+
+Caveats: n = 54 with 11 events gives wide CIs (AUC CI half-width about 0.12), so differences up to about 0.1 cannot be excluded; the screen only rules out a +0.05 gain being demonstrable. AUC and PPV use R11 session-2 accuracy of 100 trials, itself noisy (binomial sd 4-5 pp). N1 uses the aligned training session only; session shift is untested by it yet it still ranks well. The track ends: the plan does not change, a flag may be used as a quality indicator but offers no accuracy route for the bottom third.
