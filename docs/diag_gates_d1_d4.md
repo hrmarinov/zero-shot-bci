@@ -1545,3 +1545,23 @@ Reading: the cross-subject prior helps when the library is large (53 subjects, ~
 
 All K: one-sided p = 0.0001; the gain saturates at about 13 subjects (three random draws per K, draw sd 0.8-1.4 pp). K = 53 reproduces N8's pool_w0 exactly.
 Reading: the gain is a property of the cohort or task, not of the library size. Lee2019 trials are few (100 per session) and subject accuracy is lower; IV-2a has 288 trials per session and R11 at 82 %, where a population prior has little to add. That points to "population priors help when a subject's own data is scarce", which is a calibration-burden claim, the next test (N11). The cross-subject line stays closed as a Lee2019-specific accuracy gain. Results: `results/n10_library_scaling_lee2019.csv`.
+
+## N11, calibration burden with a population prior (pre-registered in `experiments/n11_calibration_burden.py`, commit 03918e5)
+
+**Verdict (pre-registered rule): CALIBRATION-FREE VIABLE and BURDEN CLAIM both hold on Lee2019, for the TS+LR member alone.** A zero-shot pooled decoder (53 other subjects, no own labels) reaches 75.26 % on session 2, against 70.72 % for the subject's own decoder with all 100 session-1 trials; the pooled decoder plus only 5 own trials (weight 20) already matches it (75.11 %, n_pool = 5, a 20x burden reduction, Holm p = 0.0002 against own at 5 trials).
+
+| n_own trials | own only | pool0 (zero-shot) | pool + own (w = 20) | poolw - own | up / down |
+|---|---|---|---|---|---|
+| 5 | 55.36 | 75.26 | 75.11 | +19.75 | 51 / 3 |
+| 10 | 62.27 | 75.26 | 74.69 | +12.41 | 49 / 5 |
+| 20 | 65.00 | 75.26 | 74.93 | +9.93 | 46 / 7 |
+| 40 | 67.92 | 75.26 | 74.75 | +6.83 | 44 / 8 |
+| 70 | 69.74 | 75.26 | 74.95 | +5.21 | 45 / 8 |
+| 100 | 70.72 | 75.26 | 75.02 | +4.30 | 37 / 13 |
+
+Own-only never reaches the zero-shot accuracy at any n_own. Adding own data to the pool does not help beyond the pool itself (75.0 against 75.3 at 100 own trials): on this cohort the subject's own session-1 data carries almost no information the population does not. Scope: the TS+LR member only (the CNN members cannot be subsampled from cache), Lee2019 only.
+
+## N12, IV-2a replication of the burden result (pre-registered in `experiments/n12_burden_iv2a.py`, commit in the same series)
+
+**Verdict: NOT CONSISTENT. On IV-2a (9 subjects, 4 classes, library of 8) the zero-shot pool reaches 51.77 % against 69.29 % for the subject's own decoder with 288 trials; pool + own is below own-only from 20 trials on (-1.7 to -5.9 pp; the pool only helps at 8 trials, +4.2 pp, 7 of 9 up).** The burden claim is therefore stated for Lee2019 only. N10 shows library size does not explain the difference (8 Lee subjects already give the gain), so the remaining candidates are the dataset (100 vs 288 trials per session, 2 vs 4 classes, subject heterogeneity, montage) and the method; deciding between them needs a second same-task cohort of 50+ subjects, which is not available without a lockbox opening. This agrees with the project's earlier negative cross-subject results (`docs/progress_and_direction.md`): the only place a population prior helped is a binary, 100-trial, 54-subject cohort.
+Results: `results/n10_library_scaling_lee2019.csv`, `results/n11_calibration_burden_*.csv`, `results/n12_burden_iv2a.csv`.

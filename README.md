@@ -253,8 +253,9 @@ near chance).
 
 1. ~~Cheap stack of zero-fit fixes~~ done (S1 screen): none adopted. The cheap lane on cached members is closed.
 2. ~~CNN training-recipe pieces (interaug, Mixup)~~ done (S6 screen): none adopted. The recipe lane is closed.
-3. One Zhou2020 opening, only if step 2 reaches +3 pp.
-4. In parallel, a capped set of tests for the ocular-confound preprint.
+3. ~~Non-responder flags~~ done (N0): none beats training-session CV. ~~Drift forecast, shrinkage, pooled decoder~~ done (N7-N10): a population prior from other subjects lifts Lee2019 (R11 +1.9 to +2.9 pp, TS+LR member alone: zero-shot 75.3 % against 70.7 % with 100 own trials, N11) but does not replicate on IV-2a (N9, N12). Open: a same-task cohort of 50+ subjects to decide whether this is the dataset or the method.
+4. One Zhou2020 opening, only if a candidate reaches +3 pp.
+5. In parallel, a capped set of tests for the ocular-confound preprint.
 
 ## Citation
 
