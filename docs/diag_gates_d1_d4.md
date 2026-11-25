@@ -1511,3 +1511,23 @@ Reading and caveats:
 - The gain of ens4 over a swapped member is a diversity effect (a pooled member differs from the three subject-specific ones), not a better single decoder: auto_w alone equals N7c auto. ens4 changes the ensemble from 3 to 4 members; no equal-size control (a fourth subject-specific member) was registered. Earlier controls with an extra CNN seed gave nothing (D2 `ctrl`), which argues against a generic "more members" explanation but does not exclude it.
 - Deployment needs a labelled library of other subjects' trials (53 here, ~10 k trials) rather than two population means; IV-2a / IV-2b cannot replicate it (8-9 subjects, a different montage). 2.94 pp sits at the edge of the +3 pp bar and the cohort is also the development cohort: a replication needs a same-montage cohort.
 Results: `results/n8_pooled_decoder_*.csv`.
+
+## N9, equal-size control and IV-2a replication (pre-registered in `experiments/n9_ens4_controls.py`, commit e53f5c6)
+
+**Verdict: Part A credits the gain to cross-subject information, Part B does not replicate on IV-2a, so under the pre-registered rule ens4 does NOT stay the candidate: it is a Lee2019-specific result (a 53-subject library, binary task) and remains a development-cohort screen.**
+
+Part A, Lee2019 n = 54 (reproduces N8's ens4 and N7c auto exactly): ens4 = 77.43 %; the equal-size control ens4_ctrl (CNN3 + TS+LR[N7c] + FTS2 + CNN seeds 3-4) = 75.52 % (+1.04 pp over base_I, but -0.87 pp against the three-member N7c auto: a fourth subject-specific member dilutes the ensemble). ens4 - ens4_ctrl = **+1.91 pp (38 up / 8 down, p = 0.0002)**, so member count is not the explanation.
+
+Part B, IV-2a n = 9 (descriptive, library of 8 other subjects, 4 classes; R11 base reproduced exactly):
+
+| Arm (R11) | R11 | gain over base_I | up / down |
+|---|---|---|---|
+| base_I | 82.72 | - | - |
+| N7c auto (lam chosen 0 for every subject: no shrinkage helps) | 82.72 | 0.00 | 0 / 0 |
+| pool[auto_w] swapped in | 81.79 | -0.93 | 1 / 7 |
+| ens4_ctrl | 81.25 | -1.47 | 0 / 8 |
+| ens4 | 81.40 | -1.31 | 1 / 8 |
+
+ens4 - ens4_ctrl = +0.15 pp (5 up / 4 down): the pooled member is no better than an extra CNN seed there. The replication rule (gain >= +0.5 pp, >= 7 of 9 up, ens4 > ens4_ctrl) fails.
+
+Reading: the cross-subject prior helps when the library is large (53 subjects, ~10 k trials, binary) and does nothing, or hurts slightly, with 8 subjects and 4 classes; N7c's shrinkage already declines to act on IV-2a. The difference between datasets is confounded (library size, class count, montage), so this does not show the effect is spurious; it shows it is not demonstrated outside Lee2019. No README / TODO change: the plan is unchanged (no adoption). A real replication needs a second 50-subject-scale same-task cohort, which only a lockbox opening could provide, and the +3 pp bar is not met (ens4 +2.94 pp). Results: `results/n9_ens4_controls_*.csv`.
