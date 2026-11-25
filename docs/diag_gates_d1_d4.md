@@ -1490,3 +1490,24 @@ Results: `results/n7b_shrinkage_control_*.csv`.
 - Transfer-limited subjects (n = 9): 61.0 -> 64.7 %; bottom third (n = 18): 59.6 -> 62.9 %; share >= 70 %: 59.3 -> 66.7 %.
 - What it means: the accuracy-optimal lam is 0.8-1.0, i.e. the subject's own session-1 class means are almost replaced by the population's, and the decoder keeps the subject's own within-class spread. The TS+LR member of R11 is under-using cross-subject information (a population class template), not session-to-session drift. A gain this large from a one-parameter population prior points to a direct cross-subject prior (pooled or population-template decoder) as the next lead; it is untested here and needs its own pre-registration and a same-montage library for IV-2a / IV-2b.
 Results: `results/n7c_shrinkage_strength_lee2019.csv`.
+
+## N8, pooled cross-subject decoder (pre-registered in `experiments/n8_pooled_decoder_screen.py`, commit 09f4b93)
+
+**Verdict: the pooled decoder as a replacement for the TS+LR member does not beat N7c's candidate, but as a fourth ensemble member next to it (ens4) it does: R11 +2.94 pp over base_I, +1.04 pp over N7c auto (Holm p 0.021). Still a screen on the development cohort and just below the +3 pp Zhou2020 bar (2.94 pp), so no lockbox opening is justified.**
+
+| Arm (R11, Lee2019 n = 54) | R11 | gain over base_I | up / down |
+|---|---|---|---|
+| base_I | 74.48 | - | - |
+| N7c auto (shrinkage, lam 0.8) | 76.39 | +1.91 pp | 35 / 9 |
+| pool_w0 (zero-shot: the 53 others only) | 76.83 | +2.35 pp | 36 / 9 |
+| pool_w1 / w5 / w20 / w100 (descriptive) | 76.89 / 76.91 / 76.80 / 76.44 | +2.41 / +2.43 / +2.31 / +1.96 | |
+| auto_w (w chosen on 10 fixed validators; chosen 100 for 38 subjects, 5 for 10, 20 for 5, 0 for 1) | 76.44 | +1.96 pp | 35 / 11 |
+| ens4 = (CNN3 + TS+LR[N7c] + FTS2 + pool[auto_w]) / 4 | **77.43** | **+2.94 pp** | 39 / 9 |
+
+Primary contrasts against N7c auto: auto_w +0.06 pp (p 0.46, Holm 0.46); ens4 +1.04 pp (25 up / 14 down, p 0.0105, Holm 0.021). Transfer-limited (n = 9): 61.0 -> 64.7 (N7c) -> 67.7 (ens4); bottom third (n = 18): 59.6 -> 62.9 -> 63.0; share >= 70 %: 59.3 -> 66.7 -> 70.4 %.
+
+Reading and caveats:
+- A zero-shot pooled decoder that never sees the subject's own labels already gives +2.35 pp over R11's own TS+LR member, so the subject-specific session-1 data adds almost nothing to the covariance member on this cohort; the weight w (own data) barely matters.
+- The gain of ens4 over a swapped member is a diversity effect (a pooled member differs from the three subject-specific ones), not a better single decoder: auto_w alone equals N7c auto. ens4 changes the ensemble from 3 to 4 members; no equal-size control (a fourth subject-specific member) was registered. Earlier controls with an extra CNN seed gave nothing (D2 `ctrl`), which argues against a generic "more members" explanation but does not exclude it.
+- Deployment needs a labelled library of other subjects' trials (53 here, ~10 k trials) rather than two population means; IV-2a / IV-2b cannot replicate it (8-9 subjects, a different montage). 2.94 pp sits at the edge of the +3 pp bar and the cohort is also the development cohort: a replication needs a same-montage cohort.
+Results: `results/n8_pooled_decoder_*.csv`.
