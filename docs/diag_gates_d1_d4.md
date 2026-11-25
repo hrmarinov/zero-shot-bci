@@ -1437,3 +1437,21 @@ Reading:
 - IV-2a (n = 9, no non-responders by the chance bound, so no AUC): subjects 2 and 6 (66 %) are ranked low by N1 (2nd and 3rd lowest) and by N4/N5 (2nd or 3rd lowest, and N2a/N4 rank subject 6 second), but not by N3. So the cheap flags would have flagged them, although TCFormer reaches 73-75 % on them. IV-2b (n = 9, one non-responder) is descriptive only.
 
 Caveats: n = 54 with 11 events gives wide CIs (AUC CI half-width about 0.12), so differences up to about 0.1 cannot be excluded; the screen only rules out a +0.05 gain being demonstrable. AUC and PPV use R11 session-2 accuracy of 100 trials, itself noisy (binomial sd 4-5 pp). N1 uses the aligned training session only; session shift is untested by it yet it still ranks well. The track ends: the plan does not change, a flag may be used as a quality indicator but offers no accuracy route for the bottom third.
+
+## N7, drift forecast (pre-registered in `experiments/n7_drift_forecast_screen.py`, commit c401a15)
+
+**Verdict: screen passed (the pre-registered ADOPT rule is met), as a candidate only.** Learning the session 1 -> 2 shift of the class means from the other 53 subjects and translating the subject's session-1 trials by the forecast lifts R11 on Lee2019 from 74.48 % (paired control, fixed-I tangent space) to 76.17 %.
+
+| Contrast (R11, Lee2019 n = 54) | mean | up / down | one-sided p | Holm p |
+|---|---|---|---|---|
+| ridge - base_I (subject-specific forecast) | +1.69 pp | 31 / 13 | 0.0001 | 0.0002 |
+| const - base_I (population mean shift) | +0.54 pp | 21 / 9 | 0.0029 | 0.0029 |
+| ridge - const | +1.15 pp | 29 / 15 | 0.0029 | - |
+| ridge - base (D2 R11) | +1.63 pp | 30 / 13 | 0.0001 | - |
+
+- Forecast skill (leave-one-subject-out R2 of the delta against the population mean delta): +0.10, median ridge alpha 10.
+- TS+LR member alone: ridge - base_I +1.09 pp (p 0.18), const - base_I -0.69 pp; the gain is clearer after the ensemble.
+- D3 transfer-limited subjects (n = 9): 61.0 -> 65.2 %; bottom third by csp_lda (n = 18): 59.6 -> 62.6 %; share >= 70 %: 59.3 -> 66.7 %.
+- IV-2a / IV-2b are not applicable (8-9 subjects, different montage); a replication needs Zhou2020, and the project's rule opens it only for an effect >= +3 pp, which this is not.
+
+Caveats: (1) no pre-registered control separates "forecasting drift" from "pulling the subject's class means toward a population prior": const covers part of it (ridge - const is positive) but a shrinkage arm was not registered; run it before believing the mechanism. (2) The TS+LR member alone is not significant; the gain shows in the ensemble. (3) Deployment needs a library of subjects with two labelled sessions (here 53). (4) Leave-one-subject-out used only the held-out subject's session 1 labels and its unlabelled session-2 trials; the Lee2019 cohort is also the cohort used for development, so this is a screen, not a confirmation. Results: `results/n7_drift_forecast_*.csv`.
