@@ -1531,3 +1531,17 @@ Part B, IV-2a n = 9 (descriptive, library of 8 other subjects, 4 classes; R11 ba
 ens4 - ens4_ctrl = +0.15 pp (5 up / 4 down): the pooled member is no better than an extra CNN seed there. The replication rule (gain >= +0.5 pp, >= 7 of 9 up, ens4 > ens4_ctrl) fails.
 
 Reading: the cross-subject prior helps when the library is large (53 subjects, ~10 k trials, binary) and does nothing, or hurts slightly, with 8 subjects and 4 classes; N7c's shrinkage already declines to act on IV-2a. The difference between datasets is confounded (library size, class count, montage), so this does not show the effect is spurious; it shows it is not demonstrated outside Lee2019. No README / TODO change: the plan is unchanged (no adoption). A real replication needs a second 50-subject-scale same-task cohort, which only a lockbox opening could provide, and the +3 pp bar is not met (ens4 +2.94 pp). Results: `results/n9_ens4_controls_*.csv`.
+
+## N10, library-size scaling of the pooled decoder (pre-registered in `experiments/n10_library_scaling.py`, commit 941f78b)
+
+**Verdict (pre-registered rule): FLAT. gain(53) - gain(8) = +0.48 pp (29 up / 19 down, p = 0.045), below the +1.0 pp bar. A library of 8 subjects already gives most of the gain, so the IV-2a null in N9 is not explained by its small library.**
+
+| Library K (Lee2019, zero-shot pooled TS+LR swapped into R11) | R11 | gain over base_I | up / down | transfer-limited | bottom third |
+|---|---|---|---|---|---|
+| 8 | 76.36 | +1.88 pp | 37 / 15 | +5.07 | +2.85 |
+| 13 | 76.94 | +2.46 pp | 41 / 9 | +4.81 | +3.33 |
+| 27 | 76.90 | +2.41 pp | 41 / 11 | +5.30 | +3.35 |
+| 53 | 76.83 | +2.35 pp | 36 / 9 | +5.22 | +2.94 |
+
+All K: one-sided p = 0.0001; the gain saturates at about 13 subjects (three random draws per K, draw sd 0.8-1.4 pp). K = 53 reproduces N8's pool_w0 exactly.
+Reading: the gain is a property of the cohort or task, not of the library size. Lee2019 trials are few (100 per session) and subject accuracy is lower; IV-2a has 288 trials per session and R11 at 82 %, where a population prior has little to add. That points to "population priors help when a subject's own data is scarce", which is a calibration-burden claim, the next test (N11). The cross-subject line stays closed as a Lee2019-specific accuracy gain. Results: `results/n10_library_scaling_lee2019.csv`.

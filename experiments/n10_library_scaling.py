@@ -21,3 +21,67 @@ within-subject spread across draws.
 
     .venv\Scripts\python experiments\n10_library_scaling.py
 """
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+from experiments.d2_lee2019_dev import sign_flip_p  # noqa: E402
+from experiments.n7_drift_forecast_screen import N_SUB, fit_predict, subject_features  # noqa: E402
+from experiments.n8_pooled_decoder_screen import acc, pool_proba, r11_pred  # noqa: E402
+from src.config import RESULTS_DIR  # noqa: E402
+
+SIZES, N_DRAWS, MIN_DIFF_PP, ALPHA = (8, 13, 27, 53), 3, 1.0, 0.05
+
+
+def pooled_acc(S: dict, s: int, k: int) -> tuple[float, float]:
+    """Mean R11 accuracy (swap) over the draws of a K-subject library, and its spread across draws."""
+    others = [o for o in S if o != s]
+    draws = 1 if k == len(others) else N_DRAWS
+    accs = []
+    for d in range(draws):
+        lib = set(np.random.default_rng(1000 * s + d).choice(others, k, replace=False)) if k < len(others) else set(others)
+        accs.append(100 * acc(S[s], r11_pred(S[s], pool_proba(S, set(S) - lib, None, 0, S[s]))))
+    return float(np.mean(accs)), float(np.std(accs))
+
+
+def main() -> int:
+    n7 = pd.read_csv(RESULTS_DIR / "n7_drift_forecast_lee2019.csv", index_col=0)
+    n8 = pd.read_csv(RESULTS_DIR / "n8_pooled_decoder_lee2019.csv", index_col=0)
+    d3 = pd.read_csv(RESULTS_DIR / "d3_weak_subject_diagnosis.csv").set_index("subject")
+    d2 = pd.read_csv(RESULTS_DIR / "d2_lee2019_dev.csv").set_index("subject")
+    S = {s: subject_features(s) for s in range(1, N_SUB + 1)}
+    rows = {}
+    for s, v in S.items():
+        base = 100 * acc(v, r11_pred(v, fit_predict(v["F_tr"], v["y_tr"], None, v["F_te"])))
+        rows[s] = {"base_I": base}
+        for k in SIZES:
+            rows[s][f"K{k}"], rows[s][f"K{k}_sd"] = pooled_acc(S, s, k)
+        print(f"s{s}: base_I {base:.0f}, " + ", ".join(f"K{k} {rows[s][f'K{k}']:.1f}" for k in SIZES), flush=True)
+    df = pd.DataFrame(rows).T
+    if (df.base_I - n7.r11_base_I).abs().max() > 1e-9 or (df.K53 - n8.pool_w0).abs().max() > 1e-9:
+        raise AssertionError("base_I or K = 53 does not reproduce N7 / N8")
+    print("\nreproduces N7 base_I and N8 pool_w0")
+    tl, third = d3.index[d3.category == "transfer_limited"], d2.csp_lda.sort_values().index[: N_SUB // 3]
+    for k in SIZES:
+        g = df[f"K{k}"] - df.base_I
+        print(f"K = {k:2d}: R11 {df[f'K{k}'].mean():.2f}, gain {g.mean():+.2f} pp ({(g > 0).sum()} up/{(g < 0).sum()} down), "
+              f"p = {sign_flip_p(g.to_numpy()):.4f}; transfer_limited {g[tl].mean():+.2f}, bottom third {g[third].mean():+.2f}; "
+              f"draw sd {df[f'K{k}_sd'].mean():.2f}")
+    d = (df.K53 - df.K8)
+    p = sign_flip_p(d.to_numpy())
+    scales = d.mean() >= MIN_DIFF_PP and p < ALPHA
+    print(f"\ngain(53) - gain(8) = {d.mean():+.2f} pp ({(d > 0).sum()} up/{(d < 0).sum()} down), p = {p:.4f}")
+    print("VERDICT:", "SCALES" if scales else "FLAT")
+    df.to_csv(RESULTS_DIR / "n10_library_scaling_lee2019.csv")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
