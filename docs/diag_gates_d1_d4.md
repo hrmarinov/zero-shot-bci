@@ -1475,3 +1475,18 @@ Reading and caveats:
 - ridge_perm beats the MSE-chosen shrinkage: lambda picked for forecast error is probably smaller than the accuracy-optimal pull, so a stronger prior may add more. That is a lead, not a result: choosing lambda on accuracy would select on session-2 labels; it needs a pre-registered fixed grid and is not run here.
 - Still a screen on the development cohort (+1.1 pp is below the +3 pp bar for opening Zhou2020); no IV-2a / IV-2b replication is possible with this method as built (a population mean would need a same-montage library).
 Results: `results/n7b_shrinkage_control_*.csv`.
+
+## N7c, shrinkage strength chosen on the other subjects (pre-registered in `experiments/n7c_shrinkage_strength.py`, commit 63127a1)
+
+**Verdict: auto replaces shrink1 as the candidate (R11 +1.91 pp over base_I, 35 up / 9 down), still a screen on the development cohort and below the +3 pp Zhou2020 bar.** lam is chosen for each subject only from the other 53 subjects' session-2 accuracy (nested leave-one-subject-out), so no session-2 label of the scored subject enters.
+
+| Arm (R11, Lee2019 n = 54) | R11 | gain over base_I |
+|---|---|---|
+| base_I (lam 0) | 74.48 | - |
+| fixed lam 0.2 / 0.4 / 0.6 / 0.8 / 1.0 (descriptive, hindsight) | 74.87 / 75.57 / 76.20 / 76.44 / 76.41 | +0.4 / +1.1 / +1.7 / +2.0 / +1.9 |
+| auto (chosen lam: 0.8 for 48 subjects, 1.0 for 6) | 76.39 | +1.91 pp, p < 0.0001 |
+
+- Primary: auto - shrink1(N7b) = +0.81 pp (25 up / 14 down), one-sided p = 0.011, so the stronger pull is reliably better than the forecast-error lam.
+- Transfer-limited subjects (n = 9): 61.0 -> 64.7 %; bottom third (n = 18): 59.6 -> 62.9 %; share >= 70 %: 59.3 -> 66.7 %.
+- What it means: the accuracy-optimal lam is 0.8-1.0, i.e. the subject's own session-1 class means are almost replaced by the population's, and the decoder keeps the subject's own within-class spread. The TS+LR member of R11 is under-using cross-subject information (a population class template), not session-to-session drift. A gain this large from a one-parameter population prior points to a direct cross-subject prior (pooled or population-template decoder) as the next lead; it is untested here and needs its own pre-registration and a same-montage library for IV-2a / IV-2b.
+Results: `results/n7c_shrinkage_strength_lee2019.csv`.
