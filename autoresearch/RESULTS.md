@@ -54,3 +54,11 @@ to read as a gain). Stopped after round 3 kept nothing.
 - dawid_skene ignores member weights, so after it was kept, weighted variants (gate_double, gate_4th) count members unweighted.
 - Limits: TUNE and IV-2a were both used for selection, so these numbers are optimistic; the two kept steps are each small; no untouched
   confirmation set exists apart from the sealed Zhou2020, which was not opened.
+
+## All-member gate with GPU out-of-fold CNN predictions (`gate_all.py`, rules committed in 44a0e28)
+
+**No arm passed; the incumbent stays dawid_skene + gate_slot.** Full numbers: `gate_all_summary.txt`, `gate_all_{lee,iv2a}.csv`.
+Best arm, full_map50 (four members, 50 pseudo-trials toward equal weights): against R11, Lee TUNE +3.07 pp (22 up / 2 down) and
+IV-2a -0.58 pp (1 / 6); against the incumbent, +1.52 and -0.69. It fails only the IV-2a condition (limit -0.25 against the incumbent).
+Gating R11's own three members alone did not help (Lee +0.07 pp against R11). TUNE and IV-2a are selection sets; nothing here is
+confirmed. Zhou2020 was not opened.
