@@ -15,3 +15,9 @@ the first experiment. Only `candidate.py` is edited by the loop; `prepare.py` is
   fourth member, own weight 20, as found in N8). SUCCESS iff incumbent - R11 >= +1.0 pp with one-sided sign-flip p < 0.05; the loop
   ADDED something iff incumbent - reference >= +0.5 pp with p < 0.05. Whatever the outcome, no second holdout run.
 - CAVEAT fixed in advance: HOLDOUT is clean for this loop only; N7-N12 already used all 54 subjects, so the starting ideas are not.
+
+## Round 2+ (committed before its first experiment)
+- Class balancing is removed from the candidate (not usable online). It is reported separately at the end and never kept by the loop.
+- Same TUNE subjects, metric, keep rule and harness. The spent HOLDOUT is not read again. Start = round 1's candidate without balancing.
+- PLATEAU: ideas run in rounds (loop2.py: round 2 new ideas, later rounds neighbours of the numeric settings and the round-2 ideas
+  again on the new incumbent). Stop after the first round that keeps nothing, or at 90 experiments in total across all rounds.

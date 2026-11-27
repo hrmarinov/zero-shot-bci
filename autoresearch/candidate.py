@@ -11,11 +11,12 @@ from sklearn.linear_model import LogisticRegression
 
 from src.pipeline import SubjectData, align_by_group, tslr_member
 
-CFG = {'w_pool': 2.0, 'pool_w': 0.0, 'w_own': 0.0, 'balance': True}
+CFG = {'w_pool': 2.0, 'pool_w': 0.0, 'w_own': 0.0}
 
 DEFAULT = {"w_cnn": 1.0, "w_own": 1.0, "w_fts": 1.0, "w_pool": 0.0, "w_pool2": 0.0, "own_mode": "r11", "own_C": 1.0, "lam": 0.0,
            "own_feats": [None], "pool_feats": [None], "pool2_feats": [((8, 13), (0.5, 2.5)), ((13, 30), (0.5, 2.5))],
-           "pool_w": 20.0, "pool_C": 1.0, "pool_clf": "lr", "knn": 0, "geo": False, "balance": False}
+           "pool_w": 20.0, "pool_C": 1.0, "cov": "oas", "scale": False, "align": "riemann", "lib_session": None,
+           "pool2_C": None, "pool2_clf": None, "pool_clf": "lr", "knn": 0, "geo": False, "balance": False}
 _CACHE: dict = {}
 
 
@@ -24,7 +25,8 @@ def feats(key: tuple, s: dict, spec: list) -> np.ndarray:
     otherwise ((low, high), (t0, t1)) cut from the 4-38 Hz 0-4 s signal (250 Hz)."""
     out = []
     for item in spec:
-        k = (*key, item)
+        cfg = {**DEFAULT, **CFG}
+        k = (*key, item, cfg["cov"], cfg["scale"], cfg["align"])
         if k not in _CACHE:
             if item is None:
                 X = s["X_ts"]
@@ -32,9 +34,17 @@ def feats(key: tuple, s: dict, spec: list) -> np.ndarray:
                 band, (t0, t1) = item
                 sos = butter(4, band, "bandpass", fs=250, output="sos")
                 X = sosfiltfilt(sos, s["X_cnn"], axis=-1)[:, :, int(t0 * 250):int(t1 * 250)].astype(np.float32)
-            A = align_by_group(X, np.zeros(len(X)))
+            if cfg["align"] == "euclid":
+                C = Covariances("oas").fit_transform(X).mean(0)
+                val, vec = np.linalg.eigh(C)
+                A = np.einsum("cd,ndt->nct", (vec / np.sqrt(val)) @ vec.T, X)
+            else:
+                A = align_by_group(X, np.zeros(len(X)))
             ts = TangentSpace(metric="riemann").fit(np.eye(A.shape[1])[None])
-            _CACHE[k] = ts.transform(Covariances("oas").fit_transform(A))
+            F = ts.transform(Covariances(cfg["cov"]).fit_transform(A))
+            if cfg["scale"]:  # unit mean squared distance to I per session (label-free dispersion matching)
+                F = F / np.sqrt((F**2).sum(1).mean())
+            _CACHE[k] = F
         out.append(_CACHE[k])
     return np.hstack(out)
 
@@ -54,8 +64,9 @@ def pooled(cfg: dict, own: dict, test: dict, library: list, spec: list) -> np.nd
             return float(((means(feats((o["id"], 0), first, spec), first["y"]) - m) ** 2).sum())
 
         lib = sorted(library, key=distance)[: cfg["knn"]]
-    X = [feats((o["id"], j), ses, spec) for o in lib for j, ses in enumerate(o["sessions"])]
-    y = [ses["y"] for o in lib for ses in o["sessions"]]
+    pairs = [(o, j, ses) for o in lib for j, ses in enumerate(o["sessions"]) if cfg["lib_session"] in (None, j)]
+    X = [feats((o["id"], j), ses, spec) for o, j, ses in pairs]
+    y = [ses["y"] for _, _, ses in pairs]
     sw = [np.ones(len(v)) for v in y]
     if cfg["pool_w"] > 0:
         X, y, sw = X + [Fo], y + [own["y"]], sw + [np.full(len(own["y"]), cfg["pool_w"])]
@@ -88,7 +99,8 @@ def predict(own: dict, test: dict, library: list) -> np.ndarray:
     if cfg["w_pool"]:
         parts.append((cfg["w_pool"], pooled(cfg, own, test, library, cfg["pool_feats"])))
     if cfg["w_pool2"]:
-        parts.append((cfg["w_pool2"], pooled(cfg, own, test, library, cfg["pool2_feats"])))
+        second = {**cfg, "pool_C": cfg["pool2_C"] or cfg["pool_C"], "pool_clf": cfg["pool2_clf"] or cfg["pool_clf"]}
+        parts.append((cfg["w_pool2"], pooled(second, own, test, library, cfg["pool2_feats"])))
     total = sum(w for w, _ in parts)
     if cfg["geo"]:
         p = np.exp(sum(w * np.log(np.clip(q, 1e-12, None)) for w, q in parts) / total)
