@@ -23,3 +23,18 @@ Limits:
 - The CNN members are still trained on the subject's own session 1, so the pipeline is not calibration-free.
 - The holdout is spent. It must not be used to choose among further variants.
 - Zhou2020 was not opened.
+
+## Round 2 and the Zhou2020 gate
+
+**Plateau.** Round 2 (no class balancing) ran experiments 26-48 and kept none. The final candidate is round 1's winner without
+balancing: (CNN3 + FTS2 + 2 x zero-shot pooled TS+LR) / 4. TUNE 77.26 % against R11 73.04 % (used for selection, so optimistic).
+It was not scored on the Lee2019 holdout: the holdout number above (79.44 %) belongs to the version with balancing.
+Balancing, reported separately: +0.33 pp on TUNE in experiment 11.
+
+**Gate on IV-2a (`gate_iv2a.py`, committed before scoring): FAIL.** R11 82.45 %, candidate 77.70 % (-4.75 pp, 0 subjects up, 8 down);
+with balancing 78.90 %. The candidate drops the subject's own TS+LR member and doubles a pooled member that is weak with 8 library
+subjects and 4 classes (N9, N12).
+
+**Zhou2020 was not opened and not downloaded.** It is 3-class with a same-montage library of 11 (subjects 1-12) or 7 (subjects 13-20),
+closer to IV-2a than to Lee2019 (2-class, 53 subjects). Protocol rule 8 requires a stated expected effect that n = 20 can detect;
+the transfer evidence points to a loss. No Zhou2020 claim is registered for this candidate.
