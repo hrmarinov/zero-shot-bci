@@ -11,7 +11,7 @@ from sklearn.linear_model import LogisticRegression
 
 from src.pipeline import SubjectData, align_by_group, tslr_member
 
-CFG = {'w_pool': 1.0}
+CFG = {'w_pool': 1.0, 'pool_w': 0.0}
 
 DEFAULT = {"w_cnn": 1.0, "w_own": 1.0, "w_fts": 1.0, "w_pool": 0.0, "w_pool2": 0.0, "own_mode": "r11", "own_C": 1.0, "lam": 0.0,
            "own_feats": [None], "pool_feats": [None], "pool2_feats": [((8, 13), (0.5, 2.5)), ((13, 30), (0.5, 2.5))],
