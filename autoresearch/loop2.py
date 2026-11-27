@@ -54,8 +54,7 @@ def main() -> None:
     best_cfg = dict(candidate.CFG)
     best = prepare.evaluate("candidate", prepare.TUNE, data)
     log = HERE / "results.tsv"
-    base = log.read_text(encoding="utf-8").rstrip("
-")
+    base = log.read_text(encoding="utf-8").rstrip("\n")
     rows, n, rnd = [f"r2-start	{best.mean():.3f}	keep	round 1 candidate without balancing"], 25, 2
     print(rows[0], flush=True)
     while n < 90:
@@ -76,10 +75,7 @@ def main() -> None:
             rows.append(f"{n}	{acc.mean():.3f}	{'keep' if keep else 'discard'}	round {rnd}: {name} "
                         f"({d.mean():+.2f} pp, {(d > 0).sum()} up / {(d < 0).sum()} down)")
             print(rows[-1], flush=True)
-            log.write_text(base + "
-" + "
-".join(rows) + "
-", encoding="utf-8")
+            log.write_text(base + "\n" + "\n".join(rows) + "\n", encoding="utf-8")
             if keep:
                 kept += 1
                 best, best_cfg = acc, trial
